@@ -1,6 +1,4 @@
-// ============================================================
-//  ANALIZADOR LÉXICO — lexer.js  (v3: + tabla de símbolos)
-// ============================================================
+//código lexer.js
 
 const PALABRAS_RESERVADAS = new Set([
   'if', 'else', 'for', 'print', 'int',
@@ -20,21 +18,7 @@ function isLetter(c) { return /[a-zA-Z]/.test(c); }
 function isDigit(c)  { return /[0-9]/.test(c); }
 function isAlnum(c)  { return isLetter(c) || isDigit(c); }
 
-// ============================================================
-//  TABLA DE SÍMBOLOS
-//  Estructura: Map<nombre, { nombre, tipo, lineaDecl, apariciones[], usos }>
-// ============================================================
 
-/**
- * Construye la tabla de símbolos a partir del array de tokens.
- * Solo registra identificadores válidos (no palabras reservadas, no errores).
- *
- * Para inferir el tipo se aplica esta heurística:
- *   - Si el token anterior al identificador es la palabra reservada "int" → tipo "int"
- *   - Si el token siguiente es ":=" y el token después es un número  → tipo "int"
- *   - Si el token siguiente es ":=" y el token después es una cadena → tipo "string"
- *   - En cualquier otro caso                                          → tipo "desconocido"
- */
 function buildSymbolTable(tokens) {
   // Map para no duplicar entradas: clave = nombre del identificador
   const table = new Map();
@@ -42,13 +26,11 @@ function buildSymbolTable(tokens) {
   for (let i = 0; i < tokens.length; i++) {
     const tok = tokens[i];
 
-    // Solo nos interesan los identificadores válidos
     if (tok.type !== 'Identificador') continue;
 
     const nombre = tok.value;
 
     if (!table.has(nombre)) {
-      // Primera vez que aparece: crear entrada
       table.set(nombre, {
         nombre,
         tipo:       inferirTipo(tokens, i),
@@ -57,14 +39,12 @@ function buildSymbolTable(tokens) {
         usos:       1
       });
     } else {
-      // Ya existe: actualizar apariciones y usos
       const entry = table.get(nombre);
       if (!entry.apariciones.includes(tok.line)) {
         entry.apariciones.push(tok.line);
       }
       entry.usos++;
 
-      // Si el tipo era desconocido, intentar inferirlo de nuevo
       if (entry.tipo === 'desconocido') {
         const tipoNuevo = inferirTipo(tokens, i);
         if (tipoNuevo !== 'desconocido') entry.tipo = tipoNuevo;
@@ -72,15 +52,14 @@ function buildSymbolTable(tokens) {
     }
   }
 
-  // Convertir el Map a un array ordenado por línea de declaración
   return Array.from(table.values()).sort((a, b) => a.lineaDecl - b.lineaDecl);
 }
 
 /**
  * Infiere el tipo de un identificador mirando los tokens vecinos.
- * @param {Array}  tokens  - array completo de tokens
- * @param {number} idx     - posición del identificador en el array
- * @returns {string} tipo inferido
+ * @param {Array}  
+ * @param {number} 
+ * @returns {string} 
  */
 function inferirTipo(tokens, idx) {
   const prev = tokens[idx - 1];

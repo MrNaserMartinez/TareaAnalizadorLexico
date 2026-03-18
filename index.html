@@ -3,128 +3,166 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Analizador Léxico</title>
+  <title>Analizador Léxico — UMG</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 <div class="app">
 
-  <header>
-    <div class="header-badge">Compiladores · Fase 1</div>
-    <h1>Analizador Léxico</h1>
-    <p class="subtitle">Tokenización de código fuente en tiempo real</p>
-  </header>
-
-  <div class="main-grid">
-
-    <!-- Panel: Código Fuente -->
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title"><span class="dot"></span>Código Fuente</span>
-        <span style="font-size:0.7rem;color:var(--muted)">Ctrl+Enter para analizar</span>
-      </div>
-      <div id="editorWrapper" style="position:relative;">
-        <textarea id="sourceCode" spellcheck="false"
-          placeholder="// Escribe o pega tu código fuente aquí...
-// Ejemplo:
-if (x := 25) {
-  print resultado;
-}"></textarea>
-      </div>
-      <div class="controls">
-        <button id="btnAnalyze" class="btn btn-primary"   onclick="analyze()">▶ Analizar</button>
-        <button class="btn btn-example"                   onclick="loadExample()">⚡ Ejemplo</button>
-        <button class="btn btn-secondary"                 onclick="clearAll()">✕ Limpiar</button>
-      </div>
+  <nav class="umg-navbar">
+    <div class="umg-navbar-text">
+      <div class="umg-navbar-title">Universidad Mariano Gálvez</div>
+      <div class="umg-navbar-subtitle">Facultad de Ingeniería en Sistemas</div>
     </div>
 
-    <!-- Panel: Tokens Detectados -->
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">
-          <span class="dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>
-          Tokens Detectados
-        </span>
-        <span id="tokenCount" style="font-size:0.7rem;color:var(--muted)">—</span>
-      </div>
+    <div class="nav-divider"></div>
 
-      <div class="legend">
-        <div class="legend-item"><div class="legend-dot" style="background:var(--token-kw)"></div>P. Reservada</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--token-id)"></div>Identificador</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--token-num)"></div>Número</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--token-str)"></div>Cadena</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--token-op)"></div>Operador</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--token-rel)"></div>Relacional</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--token-assign)"></div>Asignación</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--token-err)"></div>Error</div>
-      </div>
+    <div class="umg-navbar-badge">
+      ⬡ Compiladores · Fase 1
+    </div>
+  </nav>
 
-      <div class="progress-wrap" id="progressWrap">
-        <div class="progress-bar" id="progressBar"></div>
-      </div>
+  <div class="hero">
+    <div class="hero-eyebrow">Compiladores</div>
+    <h1>
+      <span class="accent-blue">Analizador</span>
+      <span class="accent-gold"> Léxico</span>
+    </h1>
+    <div class="hero-rule"></div>
+    <p class="subtitle">Tokenización de código fuente · Tabla de símbolos · Detección de errores</p>
+  </div>
 
-      <div class="filters-wrap" id="filtersWrap"></div>
+  <!-- ══ CONTENIDO ══ -->
+  <div class="content-wrap">
 
-      <div id="results">
-        <div class="empty-state">
-          <div class="empty-icon">⬡</div>
-          <span>Esperando análisis...</span>
-          <span style="font-size:0.72rem">Escribe código y presiona Analizar</span>
+    <div class="main-grid">
+
+      <!-- Panel: Código Fuente -->
+      <div class="panel panel-accent-blue">
+        <div class="panel-header">
+          <span class="panel-title">
+            <span class="dot" style="background:var(--umg-blue-light);box-shadow:0 0 6px var(--umg-blue-light)"></span>
+            Código Fuente
+          </span>
+          <span style="font-size:0.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace">Ctrl+Enter → analizar</span>
+        </div>
+        <div id="editorWrapper" style="position:relative;">
+          <textarea id="sourceCode" spellcheck="false"
+            placeholder="// Escribe o pega tu código fuente aquí...
+// El analizador reconoce identificadores, números,
+// cadenas, operadores, palabras reservadas y más.
+//
+// Ejemplo:
+int contador := 0;
+if (contador <= 100) {
+  print &quot;asdfg resultado&quot;;
+}"></textarea>
+        </div>
+        <div class="controls">
+          <button id="btnAnalyze" class="btn btn-primary"   onclick="analyze()">▶ Analizar</button>
+          <button class="btn btn-example"                   onclick="loadExample()">⚡ Ejemplo</button>
+          <button class="btn btn-secondary"                 onclick="clearAll()">✕ Limpiar</button>
         </div>
       </div>
 
-      <div class="stats-bar" id="statsBar" style="display:none">
-        <div class="stat">Total: <span class="stat-val" id="s-total">0</span></div>
-        <div class="stat">P.Reservadas: <span class="stat-val" id="s-kw">0</span></div>
-        <div class="stat">Identif.: <span class="stat-val" id="s-id">0</span></div>
-        <div class="stat">Números: <span class="stat-val" id="s-num">0</span></div>
-        <div class="stat" style="color:var(--red)">Errores: <span class="stat-val" id="s-err">0</span></div>
+      <!-- Panel: Tokens -->
+      <div class="panel panel-accent-green">
+        <div class="panel-header">
+          <span class="panel-title">
+            <span class="dot" style="background:var(--green);box-shadow:0 0 6px var(--green)"></span>
+            Tokens Detectados
+          </span>
+          <span id="tokenCount" style="font-size:0.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace">—</span>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--token-kw)"></div>P. Reservada</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--token-id)"></div>Identificador</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--token-num)"></div>Número</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--token-str)"></div>Cadena</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--token-op)"></div>Operador</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--token-rel)"></div>Relacional</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--token-assign)"></div>Asignación</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--token-err)"></div>Error</div>
+        </div>
+
+        <div class="progress-wrap" id="progressWrap">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="filters-wrap" id="filtersWrap"></div>
+
+        <div id="results">
+          <div class="empty-state">
+            <div class="empty-icon">⬡</div>
+            <span>Esperando análisis...</span>
+            <span style="font-size:0.7rem">Escribe código y presiona Analizar</span>
+          </div>
+        </div>
+
+        <div class="stats-bar" id="statsBar" style="display:none">
+          <div class="stat">Total: <span class="stat-val" id="s-total">0</span></div>
+          <div class="stat">P.Res.: <span class="stat-val" id="s-kw">0</span></div>
+          <div class="stat">Identif.: <span class="stat-val" id="s-id">0</span></div>
+          <div class="stat">Núm.: <span class="stat-val" id="s-num">0</span></div>
+          <div class="stat" style="color:var(--red)">Errores: <span class="stat-val" id="s-err">0</span></div>
+        </div>
+      </div>
+
+    </div><!-- /main-grid -->
+
+    <!-- Resumen por categoría -->
+    <div class="summary-panel" id="summaryPanel" style="display:none">
+      <div class="panel-header">
+        <span class="panel-title">
+          <span class="dot" style="background:var(--umg-gold);box-shadow:0 0 6px var(--umg-gold)"></span>
+          Resumen por Categoría
+        </span>
+      </div>
+      <div class="summary-grid" id="summaryGrid"></div>
+    </div>
+
+    <!-- Tabla de Símbolos -->
+    <div class="symbol-table-panel" id="symbolTablePanel" style="display:none">
+      <div class="panel-header">
+        <span class="panel-title">
+          <span class="dot" style="background:var(--umg-red);box-shadow:0 0 6px var(--umg-red)"></span>
+          Tabla de Símbolos
+        </span>
+        <span id="symbolCount" style="font-size:0.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace">—</span>
+      </div>
+      <div class="symbol-table-wrap">
+        <table class="sym-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nombre</th>
+              <th>Tipo inferido</th>
+              <th>Línea decl.</th>
+              <th>Apariciones</th>
+              <th>Usos</th>
+            </tr>
+          </thead>
+          <tbody id="symbolTableBody"></tbody>
+        </table>
       </div>
     </div>
 
-  </div><!-- /main-grid -->
+  </div><!-- /content-wrap -->
 
-  <!-- Resumen por categoría -->
-  <div class="summary-panel" id="summaryPanel" style="display:none">
-    <div class="panel-header">
-      <span class="panel-title">
-        <span class="dot" style="background:var(--accent3);box-shadow:0 0 8px var(--accent3)"></span>
-        Resumen por Categoría
-      </span>
+  <footer class="umg-footer">
+    <div class="footer-left">
+      <div class="footer-dot-b"></div>
+      <div class="footer-dot-r"></div>
+      <div class="footer-dot-g"></div>
+      <span>Universidad Mariano Gálvez de Guatemala &nbsp;·&nbsp; Ingeniería en Sistemas &nbsp;·&nbsp; Compiladores</span>
     </div>
-    <div class="summary-grid" id="summaryGrid"></div>
-  </div>
-
-  <!-- ══════════════════════════════════════════
-       TABLA DE SÍMBOLOS
-  ══════════════════════════════════════════ -->
-  <div class="symbol-table-panel" id="symbolTablePanel" style="display:none">
-    <div class="panel-header">
-      <span class="panel-title">
-        <span class="dot" style="background:var(--token-str);box-shadow:0 0 8px var(--token-str)"></span>
-        Tabla de Símbolos
-      </span>
-      <span id="symbolCount" style="font-size:0.7rem;color:var(--muted)">—</span>
-    </div>
-
-    <div class="symbol-table-wrap">
-      <table class="sym-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Nombre</th>
-            <th>Tipo inferido</th>
-            <th>Línea decl.</th>
-            <th>Apariciones</th>
-            <th>Usos</th>
-          </tr>
-        </thead>
-        <tbody id="symbolTableBody"></tbody>
-      </table>
-    </div>
-  </div>
+  </footer>
 
 </div><!-- /app -->
+
+
+// Scripts de los .js
 
 <script src="js/lexer.js"></script>
 <script src="js/app.js"></script>
