@@ -20,7 +20,7 @@ function isAlnum(c)  { return isLetter(c) || isDigit(c); }
 
 
 function buildSymbolTable(tokens) {
-  
+
   const table = new Map();
 
   for (let i = 0; i < tokens.length; i++) {
@@ -56,7 +56,6 @@ function buildSymbolTable(tokens) {
 }
 
 /**
- * Infiere el tipo de un identificador mirando los tokens vecinos.
  * @param {Array}  
  * @param {number} 
  * @returns {string} 
@@ -66,12 +65,10 @@ function inferirTipo(tokens, idx) {
   const next = tokens[idx + 1];
   const next2 = tokens[idx + 2];
 
-  // Caso 1: "int nombreVar"  → declaración explícita de entero
   if (prev && prev.type === 'Palabra_Reservada' && prev.value.toLowerCase() === 'int') {
     return 'int';
   }
 
-  // Caso 2: "nombreVar := <valor>"  → inferir por el valor asignado
   if (next && next.type === 'Asignación' && next2) {
     if (next2.type === 'Número_Entero') return 'int';
     if (next2.type === 'Cadena')        return 'string';
