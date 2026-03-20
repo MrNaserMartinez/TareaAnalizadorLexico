@@ -20,7 +20,7 @@ function isAlnum(c)  { return isLetter(c) || isDigit(c); }
 
 
 function buildSymbolTable(tokens) {
-  // Map para no duplicar entradas: clave = nombre del identificador
+  
   const table = new Map();
 
   for (let i = 0; i < tokens.length; i++) {
@@ -80,10 +80,6 @@ function inferirTipo(tokens, idx) {
   return 'desconocido';
 }
 
-// ============================================================
-//  FUNCIÓN PRINCIPAL
-// ============================================================
-
 /**
  * Analiza el código fuente y retorna tokens + tabla de símbolos.
  * @param {string} source - código fuente completo
@@ -99,12 +95,10 @@ function analyzeLexer(source) {
     if (ch === '\n')                               { lineNum++; i++; continue; }
     if (ch === ' ' || ch === '\t' || ch === '\r') { i++; continue; }
 
-    // Comentario de línea  //
     if (ch === '/' && source[i+1] === '/') {
       while (i < source.length && source[i] !== '\n') i++;
       continue;
     }
-    // Comentario de bloque  /* ... */
     if (ch === '/' && source[i+1] === '*') {
       i += 2;
       while (i < source.length && !(source[i] === '*' && source[i+1] === '/')) {
@@ -115,7 +109,6 @@ function analyzeLexer(source) {
       continue;
     }
 
-    // Cadena con comillas dobles  "..."
     if (ch === '"') {
       let str = ''; i++;
       while (i < source.length && source[i] !== '"' && source[i] !== '\n') str += source[i++];
@@ -125,7 +118,6 @@ function analyzeLexer(source) {
         : { type: 'Error',   value: `"${str}" (cadena inválida — sin 'asdfg')`, line: lineNum });
       continue;
     }
-    // Cadena con comillas simples  '...'
     if (ch === "'") {
       let str = ''; i++;
       while (i < source.length && source[i] !== "'" && source[i] !== '\n') str += source[i++];
@@ -136,7 +128,6 @@ function analyzeLexer(source) {
       continue;
     }
 
-    // Identificadores / palabras reservadas
     if (isLetter(ch)) {
       let word = '';
       while (i < source.length && isAlnum(source[i])) word += source[i++];
@@ -149,7 +140,6 @@ function analyzeLexer(source) {
       continue;
     }
 
-    // Números enteros sin signo  (rango 0–100)
     if (isDigit(ch)) {
       let num = '';
       while (i < source.length && isDigit(source[i])) num += source[i++];
@@ -160,7 +150,6 @@ function analyzeLexer(source) {
       continue;
     }
 
-    // Asignación  :=
     if (ch === ':' && source[i+1] === '=') {
       tokens.push({ type: 'Asignación', value: ':=', line: lineNum }); i += 2; continue;
     }
@@ -168,28 +157,23 @@ function analyzeLexer(source) {
       tokens.push({ type: 'Error', value: `: (se esperaba ':=')`, line: lineNum }); i++; continue;
     }
 
-    // Relacionales de 2 caracteres  >=  <=  <>  ..
     const two = source[i] + (source[i+1] || '');
     if (OPERADORES_RELACIONALES_2.has(two)) {
       tokens.push({ type: 'Relacional', value: two, line: lineNum }); i += 2; continue;
     }
 
-    // Operadores aritméticos  + - * /
     if (OPERADORES_ARITMETICOS.has(ch)) {
       tokens.push({ type: 'Operador_Aritmético', value: ch, line: lineNum }); i++; continue;
     }
 
-    // Relacionales de 1 carácter
     if (OPERADORES_RELACIONALES_1.has(ch)) {
       tokens.push({ type: 'Relacional', value: ch, line: lineNum }); i++; continue;
     }
 
-    // Carácter no reconocido → error
     tokens.push({ type: 'Error', value: `${ch} (carácter no reconocido)`, line: lineNum });
     i++;
   }
 
-  // Construir tabla de símbolos a partir de los tokens generados
   const symbolTable = buildSymbolTable(tokens);
 
   return { tokens, symbolTable };

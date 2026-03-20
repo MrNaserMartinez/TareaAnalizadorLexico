@@ -1,6 +1,4 @@
-// ============================================================
-//  UI — app.js  (v3: + tabla de símbolos)
-// ============================================================
+//app.js
 
 const TYPE_INFO = {
   'Palabra_Reservada':   { label: 'P. Reservada',  css: 'p_reservada' },
@@ -35,7 +33,6 @@ const CHIP_COLORS = {
   'Error':               'var(--token-err)',
 };
 
-// Colores por tipo inferido en la tabla de símbolos
 const TIPO_COLOR = {
   'int':         'var(--token-num)',
   'string':      'var(--token-str)',
@@ -45,7 +42,6 @@ const TIPO_COLOR = {
 let activeFilter = 'all';
 let allTokenRows  = [];
 
-// ── Helpers ───────────────────────────────────────────────────
 
 function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -66,7 +62,6 @@ function animateValue(el, end) {
   el.classList.add('pop');
 }
 
-// ── Scan line ─────────────────────────────────────────────────
 
 function playScanEffect() {
   const wrap = document.getElementById('editorWrapper');
@@ -78,7 +73,6 @@ function playScanEffect() {
   setTimeout(() => line.remove(), 700);
 }
 
-// ── Progress bar ──────────────────────────────────────────────
 
 function runProgress(cb) {
   const wrap = document.getElementById('progressWrap');
@@ -98,7 +92,6 @@ function runProgress(cb) {
   }, 520);
 }
 
-// ── Filters ───────────────────────────────────────────────────
 
 function buildFilters(stats) {
   const wrap = document.getElementById('filtersWrap');
@@ -139,7 +132,6 @@ function setFilter(type) {
     type === 'all' ? `${allTokenRows.length} tokens` : `${vis} de ${allTokenRows.length}`;
 }
 
-// ── Render tokens ─────────────────────────────────────────────
 
 function renderTokensAnimated(tokens) {
   const container = document.getElementById('results');
@@ -203,8 +195,6 @@ function renderSymbolTable(symbolTable) {
   });
 }
 
-// ── Render results ────────────────────────────────────────────
-
 function renderResults(tokens, symbolTable) {
   if (tokens.length === 0) {
     document.getElementById('results').innerHTML = emptyState('No se encontraron tokens');
@@ -236,7 +226,6 @@ function renderResults(tokens, symbolTable) {
   renderSymbolTable(symbolTable);
 }
 
-// ── Render summary ────────────────────────────────────────────
 
 function renderSummary(stats) {
   const panel = document.getElementById('summaryPanel');
@@ -262,7 +251,7 @@ function renderSummary(stats) {
   }
 }
 
-// ── Acciones ──────────────────────────────────────────────────
+//Acciones
 
 function analyze() {
   const code = document.getElementById('sourceCode').value;
