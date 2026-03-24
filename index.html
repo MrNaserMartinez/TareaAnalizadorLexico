@@ -3,241 +3,110 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Analizador Léxico — UMG</title>
+  <title>Analizador Léxico</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
-  <!-- ══════════════════════════════════════════
-       SIDEBAR
-  ══════════════════════════════════════════ -->
-  <aside class="sidebar">
+  <div class="container">
 
-    <div class="sidebar-brand">
-      <div class="sidebar-brand-title">MI <span>UMG</span></div>
-      <div class="sidebar-brand-sub">Ingeniería en Sistemas</div>
-    </div>
-
-    <div class="sidebar-footer" style="margin-top:auto">
-      <div class="sidebar-course-card">
-        <div class="sidebar-course-label">Curso activo</div>
-        <div class="sidebar-course-name">Compiladores</div>
-        <div class="sidebar-course-ciclo">Ciclo 2026 · Fase 1</div>
-      </div>
-    </div>
-
-  </aside>
-
-  <!-- ══════════════════════════════════════════
-       MAIN
-  ══════════════════════════════════════════ -->
-  <div class="main">
-
-    <!-- Topbar -->
-    <header class="topbar">
-      <div class="topbar-left">
-        <span class="topbar-breadcrumb">Compiladores / <span>Analizador Léxico</span></span>
-      </div>
-      <div class="topbar-right">
-        <div class="topbar-avatar" title="Naser">N</div>
-      </div>
+    <header class="page-header">
+      <h1>Analizador Léxico</h1>
+      <p>Compiladores &mdash; Universidad Mariano Gálvez de Guatemala &mdash; Ciclo 2026</p>
     </header>
 
-    <!-- Page content -->
-    <div class="page-content">
+    <div class="two-col">
 
-      <!-- Welcome -->
-      <div class="welcome-banner">
-        <h1 class="welcome-title">Analizador Léxico</h1>
-        <p class="welcome-sub">Compiladores · Ciclo 2026 · Universidad Mariano Gálvez de Guatemala</p>
-      </div>
-
-      <!-- Info card educativo (estilo MI UMG) -->
-      <div class="info-card">
-        <div class="info-card-icon">📖</div>
-        <div>
-          <div class="info-card-title">¿Qué hace este analizador?</div>
-          <div class="info-card-text">
-            Lee tu código fuente carácter por carácter e identifica cada <strong>token</strong>: 
-            palabras reservadas, identificadores, números, operadores y más. 
-            También construye automáticamente una <strong>tabla de símbolos</strong> con los identificadores detectados.
-            Pega tu código en el editor y presiona <strong>Analizar</strong>.
-          </div>
+      <!-- Editor -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Código Fuente</h2>
+          <span class="hint">Ctrl+Enter para analizar</span>
         </div>
-      </div>
-
-      <!-- Cards principales: editor + tokens -->
-      <div class="cards-grid">
-
-        <!-- Editor -->
-        <div class="card">
-          <div class="card-top-bar" style="background:var(--sidebar-bg)"></div>
-          <div class="card-header">
-            <span class="card-title">
-              <span class="card-title-dot" style="background:var(--sidebar-bg)"></span>
-              Código Fuente
-            </span>
-            <span style="font-size:0.62rem;color:var(--text-light)">Ctrl+Enter → analizar</span>
-          </div>
-          <div id="editorWrapper" style="position:relative;">
-            <textarea id="sourceCode" spellcheck="false"
-              placeholder="// Escribe o pega tu código fuente aquí...
-// Soporta comentarios de línea y bloque
-// Ejemplo:
+        <textarea id="sourceCode" spellcheck="false"
+          placeholder="// Escribe o pega tu código fuente aquí...
 int contador := 0;
 if (contador <= 100) {
   print &quot;asdfg resultado&quot;;
 }"></textarea>
-          </div>
-          <div class="controls">
-            <button id="btnAnalyze" class="btn btn-primary"   onclick="analyze()">▶ Analizar</button>
-            <button class="btn btn-example"                   onclick="loadExample()">⚡ Cargar Ejemplo</button>
-            <button class="btn btn-secondary"                 onclick="clearAll()">✕ Limpiar</button>
-          </div>
+        <div class="controls">
+          <button class="btn btn-primary" onclick="analyze()">▶ Analizar</button>
+          <button class="btn btn-secondary" onclick="loadExample()">Cargar Ejemplo</button>
+          <button id="btnErrors" class="btn btn-danger" onclick="toggleErrorTable()" style="display:none">
+            ⚠ Ver Errores <span id="btnErrorBadge" class="badge"></span>
+          </button>
+          <button class="btn btn-ghost" onclick="clearAll()">Limpiar</button>
         </div>
+      </section>
 
-        <!-- Tokens -->
-        <div class="card">
-          <div class="card-top-bar" style="background:var(--token-num)"></div>
-          <div class="card-header">
-            <span class="card-title">
-              <span class="card-title-dot" style="background:var(--token-num)"></span>
-              Tokens Detectados
-            </span>
-            <span id="tokenCount" class="card-count">—</span>
-          </div>
-
-          <div class="legend">
-            <div class="legend-item"><div class="legend-dot" style="background:var(--token-kw)"></div>P. Reservada</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--token-id)"></div>Identificador</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--token-num)"></div>Número</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--token-str)"></div>Cadena</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--token-op)"></div>Operador</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--token-rel)"></div>Relacional</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--token-assign)"></div>Asignación</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--token-err)"></div>Error</div>
-          </div>
-
-          <div class="progress-wrap" id="progressWrap">
-            <div class="progress-bar" id="progressBar"></div>
-          </div>
-
-          <div class="filters-wrap" id="filtersWrap"></div>
-
-          <div id="results">
-            <div class="empty-state">
-              <div class="empty-icon">📄</div>
-              <span style="font-weight:600;color:var(--text-mid)">Sin análisis aún</span>
-              <span style="font-size:0.72rem">Escribe código y presiona Analizar</span>
-            </div>
-          </div>
-
-          <div class="stats-bar" id="statsBar" style="display:none">
-            <div class="stat">Total: <span class="stat-val" id="s-total">0</span></div>
-            <div class="stat">P.Res.: <span class="stat-val" id="s-kw">0</span></div>
-            <div class="stat">Identif.: <span class="stat-val" id="s-id">0</span></div>
-            <div class="stat">Núm.: <span class="stat-val" id="s-num">0</span></div>
-            <div class="stat" style="color:var(--token-err)">Errores: <span class="stat-val" id="s-err">0</span></div>
-          </div>
+      <!-- Tokens -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Tokens Detectados</h2>
+          <span id="tokenCount" class="count-label">—</span>
         </div>
-
-      </div><!-- /cards-grid -->
-
-      <!-- Resumen por categoría -->
-      <div class="summary-panel" id="summaryPanel" style="display:none">
-        <div class="card-top-bar" style="background:var(--umg-gold)"></div>
-        <div class="card-header">
-          <span class="card-title">
-            <span class="card-title-dot" style="background:var(--umg-gold)"></span>
-            Resumen por Categoría
-          </span>
+        <div id="results" class="results-area">
+          <div class="empty-msg">Sin análisis aún. Escribe código y presiona Analizar.</div>
         </div>
-        <div class="summary-grid" id="summaryGrid"></div>
-      </div>
+        <div id="statsBar" class="stats-bar" style="display:none">
+          <span>Total: <strong id="s-total">0</strong></span>
+          <span>P. Reservadas: <strong id="s-kw">0</strong></span>
+          <span>Identificadores: <strong id="s-id">0</strong></span>
+          <span>Números: <strong id="s-num">0</strong></span>
+          <span class="stat-err">Errores: <strong id="s-err">0</strong></span>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Tablas lado a lado -->
+    <div class="two-col" id="tablesRow" style="display:none">
 
       <!-- Tabla de Símbolos -->
-      <div class="symbol-table-panel" id="symbolTablePanel" style="display:none">
-        <div class="card-top-bar" style="background:var(--umg-red)"></div>
-        <div class="card-header">
-          <span class="card-title">
-            <span class="card-title-dot" style="background:var(--umg-red)"></span>
-            Tabla de Símbolos
-          </span>
-          <span id="symbolCount" class="card-count">—</span>
+      <section class="panel" id="symbolTablePanel">
+        <div class="panel-header">
+          <h2>Tabla de Símbolos</h2>
+          <span id="symbolCount" class="count-label">—</span>
         </div>
-        <div class="symbol-table-wrap">
-          <table class="sym-table">
+        <div class="table-wrap">
+          <table>
             <thead>
               <tr>
-                <th>#</th>
-                <th>Nombre</th>
-                <th>Tipo inferido</th>
-                <th>Línea decl.</th>
-                <th>Apariciones</th>
-                <th>Usos</th>
+                <th>#</th><th>Nombre</th><th>Tipo</th>
+                <th>Línea</th><th>Apariciones</th><th>Usos</th>
               </tr>
             </thead>
             <tbody id="symbolTableBody"></tbody>
           </table>
         </div>
-      </div>
+      </section>
 
-      <!-- Cards educativas (estilo MI UMG) -->
-      <div class="edu-grid">
-
-        <div class="edu-card">
-          <div class="edu-card-header">
-            <div class="edu-card-icon" style="background:#dbeafe">🧠</div>
-            <div class="edu-card-title">Tokens que reconoce</div>
-          </div>
-          <div class="edu-card-body">
-            El analizador identifica 8 categorías de tokens según las reglas del lenguaje:
-          </div>
-          <ul class="edu-card-list">
-            <li>Identificadores: hasta 10 chars, empieza con letra</li>
-            <li>Números enteros: rango 0 – 100</li>
-            <li>Cadenas: deben contener "asdfg"</li>
-            <li>Operadores aritméticos: + − * /</li>
-            <li>Asignación: :=</li>
-            <li>Relacionales: &gt;= &lt;= &lt;&gt; &gt; &lt; = { } [ ] ( ) , ; ..</li>
-            <li>Palabras reservadas: if, else, for, print, int + combinaciones asdfg</li>
-            <li>Errores: cualquier violación a las reglas anteriores</li>
-          </ul>
+      <!-- Tabla de Errores -->
+      <section class="panel" id="errorTablePanel" style="display:none">
+        <div class="panel-header">
+          <h2>Tabla de Errores</h2>
+          <span id="errorCount" class="count-label">—</span>
         </div>
-
-        <div class="edu-card">
-          <div class="edu-card-header">
-            <div class="edu-card-icon" style="background:#d1fae5">📋</div>
-            <div class="edu-card-title">¿Qué es la Tabla de Símbolos?</div>
-          </div>
-          <div class="edu-card-body">
-            Estructura de datos que el compilador usa para registrar cada identificador encontrado en el código fuente.
-          </div>
-          <ul class="edu-card-list">
-            <li>Nombre del identificador</li>
-            <li>Tipo inferido: int, string o desconocido</li>
-            <li>Línea de primera declaración</li>
-            <li>Todas las líneas donde aparece</li>
-            <li>Número total de usos</li>
-          </ul>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Valor</th><th>Tipo de Error</th>
+                <th>Descripción</th><th>Línea</th>
+              </tr>
+            </thead>
+            <tbody id="errorTableBody"></tbody>
+          </table>
         </div>
+      </section>
 
-      </div>
+    </div><!-- /tablesRow -->
 
-    </div><!-- /page-content -->
-
-    <!-- Footer -->
     <footer class="page-footer">
-      <div class="footer-dots">
-        <div class="fd" style="background:var(--sidebar-bg)"></div>
-        <div class="fd" style="background:var(--umg-red)"></div>
-        <div class="fd" style="background:var(--umg-gold)"></div>
-        <span>Universidad Mariano Gálvez de Guatemala · Compiladores · Ciclo 2026</span>
-      </div>
-      <span>lexer.js · app.js · styles.css</span>
+      Analizador Léxico &mdash; Compiladores 2026 &mdash; UMG
     </footer>
 
-  </div><!-- /main -->
+  </div>
 
   <script src="js/lexer.js"></script>
   <script src="js/app.js"></script>

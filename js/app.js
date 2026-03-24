@@ -1,290 +1,180 @@
-//app.js
+// app.js — Analizador Léxico v4 (interfaz limpia)
 
 const TYPE_INFO = {
-  'Palabra_Reservada':   { label: 'P. Reservada',  css: 'p_reservada' },
-  'Identificador':       { label: 'Identificador', css: 'identificador' },
-  'Número_Entero':       { label: 'Número Entero', css: 'numero' },
-  'Cadena':              { label: 'Cadena',         css: 'cadena' },
-  'Operador_Aritmético': { label: 'Op. Aritmético', css: 'operador' },
-  'Relacional':          { label: 'Relacional',     css: 'relacional' },
-  'Asignación':          { label: 'Asignación',     css: 'asignacion' },
-  'Error':               { label: 'ERROR',           css: 'error' },
+  'Palabra_Reservada':   { label: 'P. Reservada',      css: 'kw'     },
+  'Identificador':       { label: 'Identificador',     css: 'id'     },
+  'Número_Entero':       { label: 'Número Entero',     css: 'num'    },
+  'Cadena':              { label: 'Cadena',            css: 'str'    },
+  'Operador_Aritmético': { label: 'Op. Aritmético',    css: 'op'     },
+  'Relacional':          { label: 'Relacional',        css: 'rel'    },
+  'Asignación':          { label: 'Asignación',        css: 'assign' },
+  'Expresion_Regular':   { label: 'Expresión Regular', css: 'regex'  },
+  'Error':               { label: 'ERROR',             css: 'err'    },
 };
 
-const SUMMARY_META = {
-  'Palabra_Reservada':   { label: 'Palabras Reservadas', color: 'var(--token-kw)'     },
-  'Identificador':       { label: 'Identificadores',     color: 'var(--token-id)'     },
-  'Número_Entero':       { label: 'Números Enteros',     color: 'var(--token-num)'    },
-  'Cadena':              { label: 'Cadenas',             color: 'var(--token-str)'    },
-  'Operador_Aritmético': { label: 'Op. Aritméticos',     color: 'var(--token-op)'     },
-  'Relacional':          { label: 'Relacionales',        color: 'var(--token-rel)'    },
-  'Asignación':          { label: 'Asignaciones',        color: 'var(--token-assign)' },
-  'Error':               { label: 'Errores',             color: 'var(--token-err)'    },
-};
+let lastErrorTable    = [];
+let errorTableVisible = false;
 
-const CHIP_COLORS = {
-  'Palabra_Reservada':   'var(--token-kw)',
-  'Identificador':       'var(--token-id)',
-  'Número_Entero':       'var(--token-num)',
-  'Cadena':              'var(--token-str)',
-  'Operador_Aritmético': 'var(--token-op)',
-  'Relacional':          'var(--token-rel)',
-  'Asignación':          'var(--token-assign)',
-  'Error':               'var(--token-err)',
-};
-
-const TIPO_COLOR = {
-  'int':         'var(--token-num)',
-  'string':      'var(--token-str)',
-  'desconocido': 'var(--muted)',
-};
-
-let activeFilter = 'all';
-let allTokenRows  = [];
-
-
+// ── Utilidades ───────────────────────────────────────────────
 function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function emptyState(msg = 'Esperando análisis...', sub = 'Escribe código y presiona Analizar') {
-  return `<div class="empty-state">
-    <div class="empty-icon">⬡</div>
-    <span>${msg}</span>
-    <span style="font-size:0.72rem">${sub}</span>
-  </div>`;
-}
-
-function animateValue(el, end) {
-  el.textContent = end;
-  el.classList.remove('pop');
-  void el.offsetWidth;
-  el.classList.add('pop');
-}
-
-
-function playScanEffect() {
-  const wrap = document.getElementById('editorWrapper');
-  const old  = wrap.querySelector('.scan-line');
-  if (old) old.remove();
-  const line = document.createElement('div');
-  line.className = 'scan-line';
-  wrap.appendChild(line);
-  setTimeout(() => line.remove(), 700);
-}
-
-
-function runProgress(cb) {
-  const wrap = document.getElementById('progressWrap');
-  const bar  = document.getElementById('progressBar');
-  wrap.classList.add('active');
-  bar.style.width = '0%';
-  let p = 0;
-  const iv = setInterval(() => {
-    p += Math.random() * 18 + 8;
-    if (p >= 90) { clearInterval(iv); p = 90; }
-    bar.style.width = p + '%';
-  }, 40);
-  setTimeout(() => {
-    clearInterval(iv);
-    bar.style.width = '100%';
-    setTimeout(() => { wrap.classList.remove('active'); bar.style.width = '0%'; cb(); }, 200);
-  }, 520);
-}
-
-
-function buildFilters(stats) {
-  const wrap = document.getElementById('filtersWrap');
-  wrap.innerHTML = `<span class="filters-label">Filtrar:</span>`;
-
-  const allChip = document.createElement('button');
-  allChip.className = 'filter-chip active';
-  allChip.dataset.type = 'all';
-  allChip.innerHTML = `Todos <span class="chip-count">${Object.values(stats).reduce((a,b)=>a+b,0)}</span>`;
-  allChip.addEventListener('click', () => setFilter('all'));
-  wrap.appendChild(allChip);
-
-  for (const [type, meta] of Object.entries(SUMMARY_META)) {
-    const count = stats[type] || 0;
-    if (count === 0) continue;
-    const chip = document.createElement('button');
-    chip.className = 'filter-chip';
-    chip.dataset.type = type;
-    chip.innerHTML = `${TYPE_INFO[type].label} <span class="chip-count">${count}</span>`;
-    chip.style.color = CHIP_COLORS[type];
-    chip.style.borderColor = CHIP_COLORS[type] + '55';
-    chip.addEventListener('click', () => setFilter(type));
-    wrap.appendChild(chip);
-  }
-  wrap.classList.add('visible');
-}
-
-function setFilter(type) {
-  activeFilter = type;
-  document.querySelectorAll('.filter-chip').forEach(c =>
-    c.classList.toggle('active', c.dataset.type === type));
-  allTokenRows.forEach(({ el, tokenType }) =>
-    el.classList.toggle('hidden-filter', type !== 'all' && tokenType !== type));
-  const vis = type === 'all'
-    ? allTokenRows.length
-    : allTokenRows.filter(r => r.tokenType === type).length;
-  document.getElementById('tokenCount').textContent =
-    type === 'all' ? `${allTokenRows.length} tokens` : `${vis} de ${allTokenRows.length}`;
-}
-
-
-function renderTokensAnimated(tokens) {
+// ── Renderizar tokens ────────────────────────────────────────
+function renderTokens(tokens) {
   const container = document.getElementById('results');
   container.innerHTML = '';
-  allTokenRows = [];
+
+  if (tokens.length === 0) {
+    container.innerHTML = '<div class="empty-msg">No se encontraron tokens.</div>';
+    return;
+  }
+
   tokens.forEach((tok, idx) => {
-    const info = TYPE_INFO[tok.type] || { label: tok.type, css: 'error' };
+    const info = TYPE_INFO[tok.type] || { label: tok.type, css: 'err' };
     const row  = document.createElement('div');
     row.className = 'token-row';
     row.innerHTML = `
-      <span class="token-num-badge">${idx + 1}</span>
-      <span class="token-type-badge tt-${info.css}">${info.label}</span>
+      <span class="token-num">${idx + 1}</span>
+      <span class="token-type tt-${info.css}">${info.label}</span>
       <span class="token-value">${escapeHtml(tok.value)}</span>
       <span class="token-line">L${tok.line}</span>
     `;
     container.appendChild(row);
-    allTokenRows.push({ el: row, tokenType: tok.type });
-    const delay = Math.min(idx * 28, 800);
-    setTimeout(() => row.classList.add('visible'), delay);
   });
 }
 
-// ── Render tabla de símbolos ──────────────────────────────────
-
+// ── Renderizar tabla de símbolos ─────────────────────────────
 function renderSymbolTable(symbolTable) {
-  const panel = document.getElementById('symbolTablePanel');
   const tbody = document.getElementById('symbolTableBody');
   const count = document.getElementById('symbolCount');
-
+  const row   = document.getElementById('tablesRow');
   tbody.innerHTML = '';
 
-  if (symbolTable.length === 0) {
-    panel.style.display = 'none';
-    return;
-  }
+  if (symbolTable.length === 0) { row.style.display = 'none'; return; }
 
-  panel.style.display = 'block';
+  row.style.display = 'grid';
   count.textContent = `${symbolTable.length} símbolo${symbolTable.length !== 1 ? 's' : ''}`;
 
   symbolTable.forEach((entry, idx) => {
-    const row = document.createElement('tr');
-    row.className = 'sym-row';
+    const tipoCss =
+      entry.tipo === 'int'         ? 'int'    :
+      entry.tipo === 'string'      ? 'string' : 'unk';
 
-    const tipoColor = TIPO_COLOR[entry.tipo] || 'var(--muted)';
     const aparicionesBadges = entry.apariciones
-      .map(l => `<span class="line-badge">L${l}</span>`)
-      .join('');
+      .map(l => `<span class="line-badge">L${l}</span>`).join('');
 
+    const row = document.createElement('tr');
     row.innerHTML = `
-      <td class="sym-idx">${idx + 1}</td>
-      <td class="sym-nombre"><span class="sym-name-pill">${escapeHtml(entry.nombre)}</span></td>
-      <td class="sym-tipo"><span class="sym-tipo-badge" style="color:${tipoColor};border-color:${tipoColor}44;background:${tipoColor}11">${entry.tipo}</span></td>
-      <td class="sym-decl">L${entry.lineaDecl}</td>
-      <td class="sym-apariciones">${aparicionesBadges}</td>
-      <td class="sym-usos"><span class="usos-count">${entry.usos}</span></td>
+      <td>${idx + 1}</td>
+      <td><code>${escapeHtml(entry.nombre)}</code></td>
+      <td><span class="type-pill type-${tipoCss}">${entry.tipo}</span></td>
+      <td>L${entry.lineaDecl}</td>
+      <td>${aparicionesBadges}</td>
+      <td><strong>${entry.usos}</strong></td>
     `;
     tbody.appendChild(row);
-
-    // Animación staggered
-    setTimeout(() => row.classList.add('visible'), idx * 40);
   });
 }
 
-function renderResults(tokens, symbolTable) {
-  if (tokens.length === 0) {
-    document.getElementById('results').innerHTML = emptyState('No se encontraron tokens');
-    document.getElementById('tokenCount').textContent = '—';
-    document.getElementById('statsBar').style.display = 'none';
-    document.getElementById('summaryPanel').style.display = 'none';
-    document.getElementById('symbolTablePanel').style.display = 'none';
-    document.getElementById('filtersWrap').classList.remove('visible');
-    return;
-  }
+// ── Renderizar tabla de errores ──────────────────────────────
+function renderErrorTable(errorTable) {
+  const tbody = document.getElementById('errorTableBody');
+  const count = document.getElementById('errorCount');
+  tbody.innerHTML = '';
+  count.textContent = `${errorTable.length} error${errorTable.length !== 1 ? 'es' : ''}`;
 
+  errorTable.forEach((entry) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${entry.idx}</td>
+      <td><code>${escapeHtml(entry.value)}</code></td>
+      <td><span class="type-pill type-err">${escapeHtml(entry.tipo)}</span></td>
+      <td style="color:#6b7280">${escapeHtml(entry.desc)}</td>
+      <td>L${entry.line}</td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+// ── Botón de errores ─────────────────────────────────────────
+function updateErrorButton(errorTable) {
+  const btn   = document.getElementById('btnErrors');
+  const badge = document.getElementById('btnErrorBadge');
+  if (errorTable.length > 0) {
+    btn.style.display = 'inline-block';
+    badge.textContent = errorTable.length;
+  } else {
+    btn.style.display = 'none';
+    document.getElementById('errorTablePanel').style.display = 'none';
+  }
+}
+
+function toggleErrorTable() {
+  errorTableVisible = !errorTableVisible;
+  const panel = document.getElementById('errorTablePanel');
+  const btn   = document.getElementById('btnErrors');
+  if (errorTableVisible) {
+    renderErrorTable(lastErrorTable);
+    panel.style.display = 'flex';
+    panel.style.flexDirection = 'column';
+    document.getElementById('tablesRow').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    btn.innerHTML = `✕ Ocultar Errores <span id="btnErrorBadge" class="badge">${lastErrorTable.length}</span>`;
+  } else {
+    panel.style.display = 'none';
+    btn.innerHTML = `⚠ Ver Errores <span id="btnErrorBadge" class="badge">${lastErrorTable.length}</span>`;
+  }
+}
+
+// ── Stats ────────────────────────────────────────────────────
+function renderStats(tokens) {
   const stats = {};
   for (const t of tokens) stats[t.type] = (stats[t.type] || 0) + 1;
 
-  renderTokensAnimated(tokens);
-  buildFilters(stats);
-
-  document.getElementById('tokenCount').textContent = `${tokens.length} tokens`;
-
-  const statsBar = document.getElementById('statsBar');
-  statsBar.style.display = 'flex';
-  animateValue(document.getElementById('s-total'), tokens.length);
-  animateValue(document.getElementById('s-kw'),    stats['Palabra_Reservada']   || 0);
-  animateValue(document.getElementById('s-id'),    stats['Identificador']       || 0);
-  animateValue(document.getElementById('s-num'),   stats['Número_Entero']       || 0);
-  animateValue(document.getElementById('s-err'),   stats['Error']               || 0);
-
-  renderSummary(stats);
-  renderSymbolTable(symbolTable);
+  const bar = document.getElementById('statsBar');
+  bar.style.display = 'flex';
+  document.getElementById('s-total').textContent = tokens.length;
+  document.getElementById('s-kw').textContent    = stats['Palabra_Reservada']   || 0;
+  document.getElementById('s-id').textContent    = stats['Identificador']       || 0;
+  document.getElementById('s-num').textContent   = stats['Número_Entero']       || 0;
+  document.getElementById('s-err').textContent   = stats['Error']               || 0;
 }
 
-
-function renderSummary(stats) {
-  const panel = document.getElementById('summaryPanel');
-  const grid  = document.getElementById('summaryGrid');
-  grid.innerHTML = '';
-  panel.style.display = 'block';
-
-  for (const [type, meta] of Object.entries(SUMMARY_META)) {
-    const count   = stats[type] || 0;
-    const item    = document.createElement('div');
-    item.className = 'summary-item';
-    const countEl = document.createElement('div');
-    countEl.className = 'summary-count';
-    countEl.style.color = meta.color;
-    countEl.textContent = count;
-    item.innerHTML = `<div class="summary-label">${meta.label}</div>`;
-    item.appendChild(countEl);
-    grid.appendChild(item);
-    const idx = Object.keys(SUMMARY_META).indexOf(type);
-    setTimeout(() => {
-      if (count > 0) { countEl.classList.add('pop'); setTimeout(() => countEl.classList.remove('pop'), 400); }
-    }, 600 + idx * 60);
-  }
-}
-
-//Acciones
-
+// ── Analizar ─────────────────────────────────────────────────
 function analyze() {
   const code = document.getElementById('sourceCode').value;
   if (!code.trim()) { clearAll(); return; }
 
-  const btn = document.getElementById('btnAnalyze');
-  btn.disabled = true;
-  btn.textContent = '⏳ Analizando...';
-  btn.classList.add('analyzing');
-  playScanEffect();
-  activeFilter = 'all';
+  errorTableVisible = false;
+  document.getElementById('errorTablePanel').style.display = 'none';
 
-  runProgress(() => {
-    const { tokens, symbolTable } = analyzeLexer(code);   // v3: desestructura ambos
-    renderResults(tokens, symbolTable);
-    btn.disabled = false;
-    btn.textContent = '▶ Analizar';
-    btn.classList.remove('analyzing');
-  });
+  const { tokens, symbolTable, errorTable } = analyzeLexer(code);
+  lastErrorTable = errorTable;
+
+  renderTokens(tokens);
+  renderStats(tokens);
+  renderSymbolTable(symbolTable);
+  updateErrorButton(errorTable);
+
+  document.getElementById('tokenCount').textContent = `${tokens.length} tokens`;
 }
 
+// ── Limpiar ──────────────────────────────────────────────────
 function clearAll() {
-  document.getElementById('sourceCode').value = '';
-  document.getElementById('results').innerHTML = emptyState();
+  document.getElementById('sourceCode').value      = '';
+  document.getElementById('results').innerHTML     = '<div class="empty-msg">Sin análisis aún. Escribe código y presiona Analizar.</div>';
   document.getElementById('tokenCount').textContent = '—';
-  document.getElementById('statsBar').style.display = 'none';
-  document.getElementById('summaryPanel').style.display = 'none';
-  document.getElementById('symbolTablePanel').style.display = 'none';
-  document.getElementById('filtersWrap').classList.remove('visible');
-  allTokenRows = [];
-  activeFilter = 'all';
+  document.getElementById('statsBar').style.display        = 'none';
+  document.getElementById('tablesRow').style.display        = 'none';
+  document.getElementById('errorTablePanel').style.display  = 'none';
+  document.getElementById('btnErrors').style.display        = 'none';
+  lastErrorTable    = [];
+  errorTableVisible = false;
 }
 
+// ── Cargar ejemplo ───────────────────────────────────────────
 function loadExample() {
   document.getElementById('sourceCode').value =
 `// Ejemplo con todos los casos del analizador
@@ -298,28 +188,25 @@ for (i := 0; i < 10; i := i + 1) {
   resultado := i * 2;
 }
 
-// Palabras reservadas + asdfg
+// Expresiones regulares
+patron1 := /[a-z]+/gi;
+emailReg := /[a-zA-Z0-9]+@[a-zA-Z]+\.[a-zA-Z]{2,}/;
+
+// Palabras reservadas con asdfg
 ifasdfg x := 55;
 printasdfg "asdfg valor";
 
-// Identificadores válidos e inválidos
-pepe := 25;
-x1   := 99;
+// Errores
 identificadorMuyLargo := 50;
-
-// Número fuera de rango
 valor := 150;
-
-// Cadena inválida
 msg := "hola mundo";
-
-// Operadores relacionales
 if (a <> b) { x := x - 1; }
-rango    := 1..10;
-resultado := (a >= b);`;
+: mal_asignacion;
+@ simbolo_raro;`;
   analyze();
 }
 
+// ── Ctrl+Enter ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sourceCode').addEventListener('keydown', e => {
     if (e.ctrlKey && e.key === 'Enter') analyze();
