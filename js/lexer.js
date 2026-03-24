@@ -161,7 +161,9 @@ function analyzeLexer(source) {
     if (isLetter(ch)) {
       let word = '';
       while (i < source.length && isAlnum(source[i])) word += source[i++];
-      if (PALABRAS_RESERVADAS.has(word.toLowerCase()))
+      if (word === 'DraSheyla')
+        tokens.push({ type: 'Especial', value: word, line: lineNum });
+      else if (PALABRAS_RESERVADAS.has(word.toLowerCase()))
         tokens.push({ type: 'Palabra_Reservada', value: word, line: lineNum });
       else if (word.length > 10)
         tokens.push({ type: 'Error', value: word, line: lineNum, errorKey: 'IDENT_LARGO' });

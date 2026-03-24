@@ -9,6 +9,7 @@ const TYPE_INFO = {
   'Relacional':          { label: 'Relacional',        css: 'rel'    },
   'Asignación':          { label: 'Asignación',        css: 'assign' },
   'Expresion_Regular':   { label: 'Expresión Regular', css: 'regex'  },
+  'Especial':            { label: '⭐ Especial',        css: 'especial'},
   'Error':               { label: 'ERROR',             css: 'err'    },
 };
 
@@ -34,12 +35,15 @@ function renderTokens(tokens) {
 
   tokens.forEach((tok, idx) => {
     const info = TYPE_INFO[tok.type] || { label: tok.type, css: 'err' };
+    const displayValue = tok.type === 'Especial'
+      ? 'Una gran persona y catedrática que admiro mucho 💙'
+      : escapeHtml(tok.value);
     const row  = document.createElement('div');
     row.className = 'token-row';
     row.innerHTML = `
       <span class="token-num">${idx + 1}</span>
       <span class="token-type tt-${info.css}">${info.label}</span>
-      <span class="token-value">${escapeHtml(tok.value)}</span>
+      <span class="token-value">${displayValue}</span>
       <span class="token-line">L${tok.line}</span>
     `;
     container.appendChild(row);

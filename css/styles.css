@@ -292,3 +292,9 @@ tbody tr:hover td { background: #f9fafb; }
   padding-top: 8px;
   border-top: 1px solid var(--border);
 }
+
+.tt-especial {
+  color: #be185d;
+  background: #fdf2f8;
+  border-color: #fbcfe8;
+}
