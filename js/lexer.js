@@ -18,7 +18,7 @@ function isLetter(c) { return /[a-zA-Z]/.test(c); }
 function isDigit(c)  { return /[0-9]/.test(c); }
 function isAlnum(c)  { return isLetter(c) || isDigit(c); }
 
-// Tipos de error con su descripción
+// Nuevo bloque: Tipos de errores
 const ERROR_TYPES = {
   IDENT_LARGO:     { tipo: 'Identificador largo',    desc: 'El identificador supera los 10 caracteres permitidos' },
   NUM_RANGO:       { tipo: 'Número fuera de rango',  desc: 'El número entero debe estar entre 0 y 100' },
@@ -27,6 +27,7 @@ const ERROR_TYPES = {
   ASIGN_INCOMPLETA:{ tipo: 'Asignación incompleta',  desc: 'Se encontró ":" pero se esperaba ":="' },
 };
 
+//tabla de símbolos
 function buildSymbolTable(tokens) {
   const table = new Map();
 
@@ -95,7 +96,7 @@ function analyzeLexer(source) {
       continue;
     }
 
-    // Expresiones regulares: /patrón/flags
+    // Bloque de expresiones regulares
     if (ch === '/' && source[i+1] !== '/' && source[i+1] !== '*') {
       const prev = tokens[tokens.length - 1];
       const prevIsOperand = prev && (
