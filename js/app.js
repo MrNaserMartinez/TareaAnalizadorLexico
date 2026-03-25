@@ -1,5 +1,4 @@
-// app.js — Analizador Léxico v4 (interfaz limpia)
-
+// app.js - Lógica de renderizado y UI
 const TYPE_INFO = {
   'Palabra_Reservada':   { label: 'P. Reservada',      css: 'kw'     },
   'Identificador':       { label: 'Identificador',     css: 'id'     },
@@ -16,14 +15,14 @@ const TYPE_INFO = {
 let lastErrorTable    = [];
 let errorTableVisible = false;
 
-// ── Utilidades ───────────────────────────────────────────────
+// 
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Renderizar tokens ────────────────────────────────────────
+// Render Tokens
 function renderTokens(tokens) {
   const container = document.getElementById('results');
   container.innerHTML = '';
@@ -50,7 +49,7 @@ function renderTokens(tokens) {
   });
 }
 
-// ── Renderizar tabla de símbolos ─────────────────────────────
+// Render Tabla de Símbolos
 function renderSymbolTable(symbolTable) {
   const tbody = document.getElementById('symbolTableBody');
   const count = document.getElementById('symbolCount');
@@ -83,7 +82,7 @@ function renderSymbolTable(symbolTable) {
   });
 }
 
-// ── Renderizar tabla de errores ──────────────────────────────
+// Render tabla de errores
 function renderErrorTable(errorTable) {
   const tbody = document.getElementById('errorTableBody');
   const count = document.getElementById('errorCount');
@@ -103,7 +102,7 @@ function renderErrorTable(errorTable) {
   });
 }
 
-// ── Botón de errores ─────────────────────────────────────────
+// Boton de errores
 function updateErrorButton(errorTable) {
   const btn   = document.getElementById('btnErrors');
   const badge = document.getElementById('btnErrorBadge');
@@ -132,7 +131,6 @@ function toggleErrorTable() {
   }
 }
 
-// ── Stats ────────────────────────────────────────────────────
 function renderStats(tokens) {
   const stats = {};
   for (const t of tokens) stats[t.type] = (stats[t.type] || 0) + 1;
@@ -146,7 +144,7 @@ function renderStats(tokens) {
   document.getElementById('s-err').textContent   = stats['Error']               || 0;
 }
 
-// ── Analizar ─────────────────────────────────────────────────
+// Analizar
 function analyze() {
   const code = document.getElementById('sourceCode').value;
   if (!code.trim()) { clearAll(); return; }
@@ -165,7 +163,7 @@ function analyze() {
   document.getElementById('tokenCount').textContent = `${tokens.length} tokens`;
 }
 
-// ── Limpiar ──────────────────────────────────────────────────
+// Reset
 function clearAll() {
   document.getElementById('sourceCode').value      = '';
   document.getElementById('results').innerHTML     = '<div class="empty-msg">Sin análisis aún. Escribe código y presiona Analizar.</div>';
@@ -178,7 +176,7 @@ function clearAll() {
   errorTableVisible = false;
 }
 
-// ── Cargar ejemplo ───────────────────────────────────────────
+//EL EJEMPLO DE PRUEBA PARA PROBAR CADA APARTADO
 function loadExample() {
   document.getElementById('sourceCode').value =
 `// Ejemplo con todos los casos del analizador

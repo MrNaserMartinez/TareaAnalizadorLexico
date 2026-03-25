@@ -1,4 +1,4 @@
-//código lexer.js — v4: Tabla de Errores + Expresiones Regulares
+// lexer.js, el cerebro del analizador léxico
 
 const PALABRAS_RESERVADAS = new Set([
   'if', 'else', 'for', 'print', 'int',
@@ -18,22 +18,22 @@ function isLetter(c) { return /[a-zA-Z]/.test(c); }
 function isDigit(c)  { return /[0-9]/.test(c); }
 function isAlnum(c)  { return isLetter(c) || isDigit(c); }
 
-// ── Clasificación de tipos de error ──────────────────────────
+// Tipos de error con su descripción
 const ERROR_TYPES = {
-  IDENT_LARGO:    { tipo: 'Identificador largo',      desc: 'El identificador supera los 10 caracteres permitidos' },
-  NUM_RANGO:      { tipo: 'Número fuera de rango',    desc: 'El número entero debe estar entre 0 y 100' },
-  CADENA_INVALIDA:{ tipo: 'Cadena sin "asdfg"',       desc: 'Las cadenas deben contener la secuencia asdfg' },
-  CHAR_INVALIDO:  { tipo: 'Carácter no reconocido',   desc: 'El carácter no pertenece al alfabeto del lenguaje' },
-  ASIGN_INCOMPLETA:{ tipo: 'Asignación incompleta',   desc: 'Se encontró ":" pero se esperaba ":="' },
+  IDENT_LARGO:     { tipo: 'Identificador largo',    desc: 'El identificador supera los 10 caracteres permitidos' },
+  NUM_RANGO:       { tipo: 'Número fuera de rango',  desc: 'El número entero debe estar entre 0 y 100' },
+  CADENA_INVALIDA: { tipo: 'Cadena sin "asdfg"',     desc: 'Las cadenas deben contener la secuencia asdfg' },
+  CHAR_INVALIDO:   { tipo: 'Carácter no reconocido', desc: 'El carácter no pertenece al alfabeto del lenguaje' },
+  ASIGN_INCOMPLETA:{ tipo: 'Asignación incompleta',  desc: 'Se encontró ":" pero se esperaba ":="' },
 };
-
-// ── Tabla de símbolos ────────────────────────────────────────
 
 function buildSymbolTable(tokens) {
   const table = new Map();
+
   for (let i = 0; i < tokens.length; i++) {
     const tok = tokens[i];
     if (tok.type !== 'Identificador') continue;
+
     const nombre = tok.value;
     if (!table.has(nombre)) {
       table.set(nombre, {
@@ -53,6 +53,7 @@ function buildSymbolTable(tokens) {
       }
     }
   }
+
   return Array.from(table.values()).sort((a, b) => a.lineaDecl - b.lineaDecl);
 }
 
@@ -60,6 +61,7 @@ function inferirTipo(tokens, idx) {
   const prev  = tokens[idx - 1];
   const next  = tokens[idx + 1];
   const next2 = tokens[idx + 2];
+
   if (prev && prev.type === 'Palabra_Reservada' && prev.value.toLowerCase() === 'int') return 'int';
   if (next && next.type === 'Asignación' && next2) {
     if (next2.type === 'Número_Entero') return 'int';
@@ -68,8 +70,6 @@ function inferirTipo(tokens, idx) {
   return 'desconocido';
 }
 
-// ── Analizador léxico principal ──────────────────────────────
-
 function analyzeLexer(source) {
   const tokens = [];
   let i = 0, lineNum = 1;
@@ -77,16 +77,14 @@ function analyzeLexer(source) {
   while (i < source.length) {
     const ch = source[i];
 
-    // Saltos de línea y espacios
     if (ch === '\n')                               { lineNum++; i++; continue; }
     if (ch === ' ' || ch === '\t' || ch === '\r') { i++; continue; }
 
-    // Comentario de línea
+    // Comentarios
     if (ch === '/' && source[i+1] === '/') {
       while (i < source.length && source[i] !== '\n') i++;
       continue;
     }
-    // Comentario de bloque
     if (ch === '/' && source[i+1] === '*') {
       i += 2;
       while (i < source.length && !(source[i] === '*' && source[i+1] === '/')) {
@@ -97,9 +95,8 @@ function analyzeLexer(source) {
       continue;
     }
 
-    // ── Expresión regular: sintaxis /patrón/flags ──────────────
+    // Expresiones regulares: /patrón/flags
     if (ch === '/' && source[i+1] !== '/' && source[i+1] !== '*') {
-      // Intentamos leer como regex solo si el char previo no es un operando (número/identificador)
       const prev = tokens[tokens.length - 1];
       const prevIsOperand = prev && (
         prev.type === 'Identificador' ||
@@ -110,43 +107,39 @@ function analyzeLexer(source) {
         let pattern = ''; let j = i + 1; let escaped = false;
         while (j < source.length) {
           const c = source[j];
-          if (escaped) { pattern += c; escaped = false; j++; continue; }
-          if (c === '\\') { pattern += c; escaped = true; j++; continue; }
-          if (c === '/' ) { j++; break; }
-          if (c === '\n') break; // regex sin cerrar → no es regex
+          if (escaped)    { pattern += c; escaped = false; j++; continue; }
+          if (c === '\\') { pattern += c; escaped = true;  j++; continue; }
+          if (c === '/')  { j++; break; }
+          if (c === '\n') break;
           pattern += c; j++;
         }
-        // Leer flags opcionales (g, i, m, s, u, y)
         let flags = '';
         while (j < source.length && /[gimsuy]/.test(source[j])) flags += source[j++];
         if (pattern.length > 0 && source[j - flags.length - 1] === '/') {
-          // Validar que el patrón sea una regex legal
           let valid = true;
           try { new RegExp(pattern, flags); } catch { valid = false; }
           tokens.push({
-            type:  valid ? 'Expresion_Regular' : 'Error',
-            value: valid ? `/${pattern}/${flags}` : `/${pattern}/${flags} (regex inválida)`,
-            line:  lineNum,
+            type:     valid ? 'Expresion_Regular' : 'Error',
+            value:    valid ? `/${pattern}/${flags}` : `/${pattern}/${flags} (regex inválida)`,
+            line:     lineNum,
             errorKey: valid ? null : 'CHAR_INVALIDO'
           });
           i = j;
           continue;
         }
-        // Si no resultó regex válida, cae a operador aritmético
       }
     }
 
-    // Cadenas dobles
+    // Cadenas
     if (ch === '"') {
       let str = ''; i++;
       while (i < source.length && source[i] !== '"' && source[i] !== '\n') str += source[i++];
       if (source[i] === '"') i++;
       tokens.push(str.includes('asdfg')
-        ? { type: 'Cadena',  value: `"${str}"`, line: lineNum }
-        : { type: 'Error',   value: `"${str}"`, line: lineNum, errorKey: 'CADENA_INVALIDA' });
+        ? { type: 'Cadena', value: `"${str}"`, line: lineNum }
+        : { type: 'Error',  value: `"${str}"`, line: lineNum, errorKey: 'CADENA_INVALIDA' });
       continue;
     }
-    // Cadenas simples
     if (ch === "'") {
       let str = ''; i++;
       while (i < source.length && source[i] !== "'" && source[i] !== '\n') str += source[i++];
@@ -183,7 +176,7 @@ function analyzeLexer(source) {
       continue;
     }
 
-    // Asignación := o error :
+    // Asignación
     if (ch === ':' && source[i+1] === '=') {
       tokens.push({ type: 'Asignación', value: ':=', line: lineNum }); i += 2; continue;
     }
@@ -191,7 +184,7 @@ function analyzeLexer(source) {
       tokens.push({ type: 'Error', value: ':', line: lineNum, errorKey: 'ASIGN_INCOMPLETA' }); i++; continue;
     }
 
-    // Operadores relacionales de 2 chars
+    // Operadores relacionales de 2 caracteres
     const two = source[i] + (source[i+1] || '');
     if (OPERADORES_RELACIONALES_2.has(two)) {
       tokens.push({ type: 'Relacional', value: two, line: lineNum }); i += 2; continue;
@@ -202,7 +195,7 @@ function analyzeLexer(source) {
       tokens.push({ type: 'Operador_Aritmético', value: ch, line: lineNum }); i++; continue;
     }
 
-    // Operadores relacionales de 1 char
+    // Operadores relacionales de 1 carácter
     if (OPERADORES_RELACIONALES_1.has(ch)) {
       tokens.push({ type: 'Relacional', value: ch, line: lineNum }); i++; continue;
     }
@@ -214,19 +207,11 @@ function analyzeLexer(source) {
 
   const symbolTable = buildSymbolTable(tokens);
 
-  // ── Construir tabla de errores ───────────────────────────────
   const errorTable = tokens
     .filter(t => t.type === 'Error')
     .map((t, idx) => {
-      const key  = t.errorKey || 'CHAR_INVALIDO';
-      const info = ERROR_TYPES[key] || ERROR_TYPES.CHAR_INVALIDO;
-      return {
-        idx:   idx + 1,
-        value: t.value,
-        tipo:  info.tipo,
-        desc:  info.desc,
-        line:  t.line
-      };
+      const info = ERROR_TYPES[t.errorKey] || ERROR_TYPES.CHAR_INVALIDO;
+      return { idx: idx + 1, value: t.value, tipo: info.tipo, desc: info.desc, line: t.line };
     });
 
   return { tokens, symbolTable, errorTable };
