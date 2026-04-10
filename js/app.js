@@ -1,28 +1,31 @@
-// app.js - Lógica de renderizado y UI
+// app.js — Lógica de UI para NenScript Analyzer
+
 const TYPE_INFO = {
-  'Palabra_Reservada':   { label: 'P. Reservada',      css: 'kw'     },
-  'Identificador':       { label: 'Identificador',     css: 'id'     },
-  'Número_Entero':       { label: 'Número Entero',     css: 'num'    },
-  'Cadena':              { label: 'Cadena',            css: 'str'    },
-  'Operador_Aritmético': { label: 'Op. Aritmético',    css: 'op'     },
-  'Relacional':          { label: 'Relacional',        css: 'rel'    },
-  'Asignación':          { label: 'Asignación',        css: 'assign' },
-  'Expresion_Regular':   { label: 'Expresión Regular', css: 'regex'  },
-  'Especial':            { label: '⭐ Especial',        css: 'especial'},
-  'Error':               { label: 'ERROR',             css: 'err'    },
+  'Palabra_Reservada':   { label: 'P. Reservada',      css: 'kw'      },
+  'Identificador':       { label: 'Identificador',     css: 'id'      },
+  'Número_Entero':       { label: 'Número Entero',     css: 'num'     },
+  'Número_Decimal':      { label: 'Número Decimal',    css: 'dec'     },
+  'Cadena':              { label: 'Cadena',            css: 'str'     },
+  'Booleano':            { label: 'Booleano',          css: 'bool'    },
+  'Operador_Aritmético': { label: 'Op. Aritmético',    css: 'op'      },
+  'Operador_Lógico':     { label: 'Op. Lógico',        css: 'logic'   },
+  'Relacional':          { label: 'Relacional',        css: 'rel'     },
+  'Asignación':          { label: 'Asignación (:=)',   css: 'assign'  },
+  'Delimitador':         { label: 'Delimitador',       css: 'delim'   },
+  'Especial':            { label: 'Especial',          css: 'especial'},
+  'Error':               { label: 'ERROR',             css: 'err'     },
 };
 
 let lastErrorTable    = [];
 let errorTableVisible = false;
 
-// 
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Render Tokens
+// Render tokens
 function renderTokens(tokens) {
   const container = document.getElementById('results');
   container.innerHTML = '';
@@ -34,11 +37,16 @@ function renderTokens(tokens) {
 
   tokens.forEach((tok, idx) => {
     const info = TYPE_INFO[tok.type] || { label: tok.type, css: 'err' };
-    const displayValue = tok.type === 'Especial'
-      ? 'Una gran persona y catedrática que admiro mucho 💙'
-      : escapeHtml(tok.value);
-    const row  = document.createElement('div');
-    row.className = 'token-row';
+
+    let displayValue;
+    if (tok.type === 'Especial') {
+      displayValue = '✨ Ingeniera ejemplar, guía y catedrática dedicada — ¡gracias por enseñarnos Compiladores!';
+    } else {
+      displayValue = escapeHtml(tok.value);
+    }
+
+    const row = document.createElement('div');
+    row.className = 'token-row' + (tok.type === 'Especial' ? ' token-row-especial' : '');
     row.innerHTML = `
       <span class="token-num">${idx + 1}</span>
       <span class="token-type tt-${info.css}">${info.label}</span>
@@ -49,7 +57,7 @@ function renderTokens(tokens) {
   });
 }
 
-// Render Tabla de Símbolos
+// Render tabla de símbolos
 function renderSymbolTable(symbolTable) {
   const tbody = document.getElementById('symbolTableBody');
   const count = document.getElementById('symbolCount');
@@ -63,14 +71,16 @@ function renderSymbolTable(symbolTable) {
 
   symbolTable.forEach((entry, idx) => {
     const tipoCss =
-      entry.tipo === 'int'         ? 'int'    :
-      entry.tipo === 'string'      ? 'string' : 'unk';
+      entry.tipo.includes('gon')      ? 'gon'      :
+      entry.tipo.includes('killua')   ? 'killua'   :
+      entry.tipo.includes('kurapika') ? 'kurapika' :
+      entry.tipo.includes('leorio')   ? 'leorio'   : 'unk';
 
     const aparicionesBadges = entry.apariciones
       .map(l => `<span class="line-badge">L${l}</span>`).join('');
 
-    const row = document.createElement('tr');
-    row.innerHTML = `
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
       <td>${idx + 1}</td>
       <td><code>${escapeHtml(entry.nombre)}</code></td>
       <td><span class="type-pill type-${tipoCss}">${entry.tipo}</span></td>
@@ -78,7 +88,7 @@ function renderSymbolTable(symbolTable) {
       <td>${aparicionesBadges}</td>
       <td><strong>${entry.usos}</strong></td>
     `;
-    tbody.appendChild(row);
+    tbody.appendChild(tr);
   });
 }
 
@@ -90,19 +100,18 @@ function renderErrorTable(errorTable) {
   count.textContent = `${errorTable.length} error${errorTable.length !== 1 ? 'es' : ''}`;
 
   errorTable.forEach((entry) => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
       <td>${entry.idx}</td>
       <td><code>${escapeHtml(entry.value)}</code></td>
       <td><span class="type-pill type-err">${escapeHtml(entry.tipo)}</span></td>
       <td style="color:#6b7280">${escapeHtml(entry.desc)}</td>
       <td>L${entry.line}</td>
     `;
-    tbody.appendChild(row);
+    tbody.appendChild(tr);
   });
 }
 
-// Boton de errores
 function updateErrorButton(errorTable) {
   const btn   = document.getElementById('btnErrors');
   const badge = document.getElementById('btnErrorBadge');
@@ -137,14 +146,13 @@ function renderStats(tokens) {
 
   const bar = document.getElementById('statsBar');
   bar.style.display = 'flex';
-  document.getElementById('s-total').textContent = tokens.length;
-  document.getElementById('s-kw').textContent    = stats['Palabra_Reservada']   || 0;
-  document.getElementById('s-id').textContent    = stats['Identificador']       || 0;
-  document.getElementById('s-num').textContent   = stats['Número_Entero']       || 0;
-  document.getElementById('s-err').textContent   = stats['Error']               || 0;
+  document.getElementById('s-total').textContent  = tokens.length;
+  document.getElementById('s-kw').textContent     = stats['Palabra_Reservada']   || 0;
+  document.getElementById('s-id').textContent     = stats['Identificador']       || 0;
+  document.getElementById('s-num').textContent    = (stats['Número_Entero'] || 0) + (stats['Número_Decimal'] || 0);
+  document.getElementById('s-err').textContent    = stats['Error']                || 0;
 }
 
-// Analizar
 function analyze() {
   const code = document.getElementById('sourceCode').value;
   if (!code.trim()) { clearAll(); return; }
@@ -163,10 +171,9 @@ function analyze() {
   document.getElementById('tokenCount').textContent = `${tokens.length} tokens`;
 }
 
-// Reset
 function clearAll() {
-  document.getElementById('sourceCode').value      = '';
-  document.getElementById('results').innerHTML     = '<div class="empty-msg">Sin análisis aún. Escribe código y presiona Analizar.</div>';
+  document.getElementById('sourceCode').value       = '';
+  document.getElementById('results').innerHTML      = '<div class="empty-msg">Sin análisis aún. Escribe código NenScript y presiona Analizar.</div>';
   document.getElementById('tokenCount').textContent = '—';
   document.getElementById('statsBar').style.display        = 'none';
   document.getElementById('tablesRow').style.display        = 'none';
@@ -176,39 +183,55 @@ function clearAll() {
   errorTableVisible = false;
 }
 
-//EL EJEMPLO DE PRUEBA PARA PROBAR CADA APARTADO
+// Ejemplo de prueba con código NenScript válido + errores
 function loadExample() {
   document.getElementById('sourceCode').value =
-`// Ejemplo con todos los casos del analizador
-int contador := 0;
-if (contador <= 100) {
-  print "asdfg resultado";
-  contador := contador + 1;
-}
+`// Programa de ejemplo en NenScript
+nen HunterExam:
 
-for (i := 0; i < 10; i := i + 1) {
-  resultado := i * 2;
-}
+    // Declaracion de variables
+    gon      vida      := 100 ;
+    killua   velocidad := 9.85 ;
+    kurapika nombre    := "Gon Freecss" ;
+    leorio   activo    := verdad ;
 
-// Expresiones regulares
-patron1 := /[a-z]+/gi;
-emailReg := /[a-zA-Z0-9]+@[a-zA-Z]+\.[a-zA-Z]{2,}/;
+    // Funcion que saluda
+    hatsu saludar( kurapika x ):
+        shu( x ) ;
+        zetsu ;
+    ko
 
-// Palabras reservadas con asdfg
-ifasdfg x := 55;
-printasdfg "asdfg valor";
+    // Condicional
+    ryodan vida > 0:
+        shu( "Aura activa" ) ;
+    illumi vida == 0:
+        shu( "Sin aura" ) ;
+    hisoka:
+        shu( "Aura negativa" ) ;
+    ko
 
-// Errores
-identificadorMuyLargo := 50;
-valor := 150;
-msg := "hola mundo";
-if (a <> b) { x := x - 1; }
-: mal_asignacion;
-@ simbolo_raro;`;
+    // Ciclo ten (while)
+    ten vida > 50:
+        vida := vida - 10 ;
+        ren ;
+    ko
+
+    // Ciclo ken (for)
+    ken gon i := 0 ; i < 5 ; i := i + 1:
+        shu( i ) ;
+    ko
+
+ko
+
+/* --- ERRORES INTENCIONALES --- */
+identificadorDemasiadoLargoParaNenScript := 1 ;
+msg := 'comilla simple invalida' ;
+x := 3.4.5 ;
+@ simbolo_raro ;
+: asignacion_rota ;`;
   analyze();
 }
 
-// ── Ctrl+Enter ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sourceCode').addEventListener('keydown', e => {
     if (e.ctrlKey && e.key === 'Enter') analyze();

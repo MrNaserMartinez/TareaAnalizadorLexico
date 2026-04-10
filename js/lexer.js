@@ -1,33 +1,35 @@
-// lexer.js, el cerebro del analizador léxico
+// lexer.js — Analizador Léxico de NenScript (Hunter x Hunter)
 
 const PALABRAS_RESERVADAS = new Set([
-  'if', 'else', 'for', 'print', 'int',
-  'asdfg',
-  'ifasdfg',    'asdfgif',
-  'elseasdfg',  'asdfgelse',
-  'forasdfg',   'asdfgfor',
-  'printasdfg', 'asdfgprint',
-  'intasdfg',   'asdfgint'
+  'nen', 'ko',
+  'gon', 'killua', 'kurapika', 'leorio',
+  'hatsu', 'zetsu',
+  'ten', 'ken', 'ren', 'gura',
+  'ryodan', 'hisoka', 'illumi',
+  'shu', 'in',
+  'verdad', 'falso',
+  'yorknew'
 ]);
 
-const OPERADORES_ARITMETICOS    = new Set(['+', '-', '*', '/']);
-const OPERADORES_RELACIONALES_2 = new Set(['>=', '<=', '<>', '..']);
-const OPERADORES_RELACIONALES_1 = new Set(['>', '<', '=', '{', '}', '[', ']', '(', ')', ',', ';']);
+const OPERADORES_ARITMETICOS    = new Set(['+', '-', '*', '/', '%']);
+const OPERADORES_RELACIONALES_2 = new Set(['>=', '<=', '==', '!=', ':=', '&&', '||']);
+const OPERADORES_RELACIONALES_1 = new Set(['>', '<', '!', '(', ')', '{', '}', '[', ']', ',', ';', ':']);
 
-function isLetter(c) { return /[a-zA-Z]/.test(c); }
+function isLetter(c) { return /[a-zA-Z_]/.test(c); }
 function isDigit(c)  { return /[0-9]/.test(c); }
-function isAlnum(c)  { return isLetter(c) || isDigit(c); }
+function isAlnum(c)  { return /[a-zA-Z0-9_]/.test(c); }
 
-// Nuevo bloque: Tipos de errores
 const ERROR_TYPES = {
-  IDENT_LARGO:     { tipo: 'Identificador largo',    desc: 'El identificador supera los 10 caracteres permitidos' },
-  NUM_RANGO:       { tipo: 'Número fuera de rango',  desc: 'El número entero debe estar entre 0 y 100' },
-  CADENA_INVALIDA: { tipo: 'Cadena sin "asdfg"',     desc: 'Las cadenas deben contener la secuencia asdfg' },
-  CHAR_INVALIDO:   { tipo: 'Carácter no reconocido', desc: 'El carácter no pertenece al alfabeto del lenguaje' },
-  ASIGN_INCOMPLETA:{ tipo: 'Asignación incompleta',  desc: 'Se encontró ":" pero se esperaba ":="' },
+  IDENT_LARGO:      { tipo: 'Identificador largo',       desc: 'El identificador supera los 20 caracteres permitidos' },
+  IDENT_INVALIDO:   { tipo: 'Identificador inválido',    desc: 'El identificador contiene caracteres no permitidos' },
+  NUM_DECIMAL_MAL:  { tipo: 'Decimal malformado',        desc: 'Número decimal con formato incorrecto (ej: 3.4.5)' },
+  CADENA_NOCERRADA: { tipo: 'Cadena sin cerrar',         desc: 'La cadena de texto no tiene comilla de cierre' },
+  COMILLA_SIMPLE:   { tipo: 'Comilla simple no válida',  desc: 'NenScript solo permite cadenas con comillas dobles' },
+  CHAR_INVALIDO:    { tipo: 'Carácter no reconocido',    desc: 'El carácter no pertenece al alfabeto de NenScript' },
+  ASIGN_INCOMPLETA: { tipo: 'Asignación incompleta',     desc: 'Se encontró \':\' solo, se esperaba \':=\'' },
 };
 
-//tabla de símbolos
+// Tabla de símbolos
 function buildSymbolTable(tokens) {
   const table = new Map();
 
@@ -63,10 +65,20 @@ function inferirTipo(tokens, idx) {
   const next  = tokens[idx + 1];
   const next2 = tokens[idx + 2];
 
-  if (prev && prev.type === 'Palabra_Reservada' && prev.value.toLowerCase() === 'int') return 'int';
+  // Declaración explícita: gon x, killua y, kurapika z, leorio w
+  if (prev && prev.type === 'Palabra_Reservada') {
+    const kw = prev.value.toLowerCase();
+    if (kw === 'gon')      return 'gon (entero)';
+    if (kw === 'killua')   return 'killua (decimal)';
+    if (kw === 'kurapika') return 'kurapika (cadena)';
+    if (kw === 'leorio')   return 'leorio (booleano)';
+  }
+  // Inferencia por asignación
   if (next && next.type === 'Asignación' && next2) {
-    if (next2.type === 'Número_Entero') return 'int';
-    if (next2.type === 'Cadena')        return 'string';
+    if (next2.type === 'Número_Entero')  return 'gon (entero)';
+    if (next2.type === 'Número_Decimal') return 'killua (decimal)';
+    if (next2.type === 'Cadena')         return 'kurapika (cadena)';
+    if (next2.type === 'Booleano')       return 'leorio (booleano)';
   }
   return 'desconocido';
 }
@@ -78,14 +90,16 @@ function analyzeLexer(source) {
   while (i < source.length) {
     const ch = source[i];
 
+    // Saltos de línea y espacios
     if (ch === '\n')                               { lineNum++; i++; continue; }
     if (ch === ' ' || ch === '\t' || ch === '\r') { i++; continue; }
 
-    // Comentarios
+    // Comentario de línea //
     if (ch === '/' && source[i+1] === '/') {
       while (i < source.length && source[i] !== '\n') i++;
       continue;
     }
+    // Comentario de bloque /* */
     if (ch === '/' && source[i+1] === '*') {
       i += 2;
       while (i < source.length && !(source[i] === '*' && source[i+1] === '/')) {
@@ -96,58 +110,25 @@ function analyzeLexer(source) {
       continue;
     }
 
-    // Bloque de expresiones regulares
-    if (ch === '/' && source[i+1] !== '/' && source[i+1] !== '*') {
-      const prev = tokens[tokens.length - 1];
-      const prevIsOperand = prev && (
-        prev.type === 'Identificador' ||
-        prev.type === 'Número_Entero' ||
-        prev.type === 'Cadena'
-      );
-      if (!prevIsOperand) {
-        let pattern = ''; let j = i + 1; let escaped = false;
-        while (j < source.length) {
-          const c = source[j];
-          if (escaped)    { pattern += c; escaped = false; j++; continue; }
-          if (c === '\\') { pattern += c; escaped = true;  j++; continue; }
-          if (c === '/')  { j++; break; }
-          if (c === '\n') break;
-          pattern += c; j++;
-        }
-        let flags = '';
-        while (j < source.length && /[gimsuy]/.test(source[j])) flags += source[j++];
-        if (pattern.length > 0 && source[j - flags.length - 1] === '/') {
-          let valid = true;
-          try { new RegExp(pattern, flags); } catch { valid = false; }
-          tokens.push({
-            type:     valid ? 'Expresion_Regular' : 'Error',
-            value:    valid ? `/${pattern}/${flags}` : `/${pattern}/${flags} (regex inválida)`,
-            line:     lineNum,
-            errorKey: valid ? null : 'CHAR_INVALIDO'
-          });
-          i = j;
-          continue;
-        }
-      }
-    }
-
-    // Cadenas
+    // Cadenas con comillas dobles
     if (ch === '"') {
       let str = ''; i++;
       while (i < source.length && source[i] !== '"' && source[i] !== '\n') str += source[i++];
-      if (source[i] === '"') i++;
-      tokens.push(str.includes('asdfg')
-        ? { type: 'Cadena', value: `"${str}"`, line: lineNum }
-        : { type: 'Error',  value: `"${str}"`, line: lineNum, errorKey: 'CADENA_INVALIDA' });
+      if (source[i] === '"') {
+        i++;
+        tokens.push({ type: 'Cadena', value: `"${str}"`, line: lineNum });
+      } else {
+        tokens.push({ type: 'Error', value: `"${str}`, line: lineNum, errorKey: 'CADENA_NOCERRADA' });
+      }
       continue;
     }
+
+    // Comillas simples — no válidas en NenScript
     if (ch === "'") {
       let str = ''; i++;
       while (i < source.length && source[i] !== "'" && source[i] !== '\n') str += source[i++];
       if (source[i] === "'") i++;
-      tokens.push(str.includes('asdfg')
-        ? { type: 'Cadena', value: `'${str}'`, line: lineNum }
-        : { type: 'Error',  value: `'${str}'`, line: lineNum, errorKey: 'CADENA_INVALIDA' });
+      tokens.push({ type: 'Error', value: `'${str}'`, line: lineNum, errorKey: 'COMILLA_SIMPLE' });
       continue;
     }
 
@@ -155,40 +136,71 @@ function analyzeLexer(source) {
     if (isLetter(ch)) {
       let word = '';
       while (i < source.length && isAlnum(source[i])) word += source[i++];
-      if (word === 'DraSheyla')
+
+      // Easter egg: DraSheyla
+      if (word === 'DraSheyla') {
         tokens.push({ type: 'Especial', value: word, line: lineNum });
-      else if (PALABRAS_RESERVADAS.has(word.toLowerCase()))
-        tokens.push({ type: 'Palabra_Reservada', value: word, line: lineNum });
-      else if (word.length > 10)
+        continue;
+      }
+
+      if (PALABRAS_RESERVADAS.has(word.toLowerCase())) {
+        // verdad / falso son booleanos
+        if (word === 'verdad' || word === 'falso') {
+          tokens.push({ type: 'Booleano', value: word, line: lineNum });
+        } else {
+          tokens.push({ type: 'Palabra_Reservada', value: word, line: lineNum });
+        }
+        continue;
+      }
+
+      if (word.length > 20) {
         tokens.push({ type: 'Error', value: word, line: lineNum, errorKey: 'IDENT_LARGO' });
-      else
-        tokens.push({ type: 'Identificador', value: word, line: lineNum });
+        continue;
+      }
+
+      tokens.push({ type: 'Identificador', value: word, line: lineNum });
       continue;
     }
 
-    // Números
+    // Números: enteros y decimales
     if (isDigit(ch)) {
       let num = '';
       while (i < source.length && isDigit(source[i])) num += source[i++];
-      const val = parseInt(num, 10);
-      tokens.push(val >= 0 && val <= 100
-        ? { type: 'Número_Entero', value: num, line: lineNum }
-        : { type: 'Error', value: num, line: lineNum, errorKey: 'NUM_RANGO' });
+
+      // Decimal
+      if (source[i] === '.' && isDigit(source[i+1])) {
+        num += source[i++]; // consume el punto
+        while (i < source.length && isDigit(source[i])) num += source[i++];
+        // Segundo punto = error
+        if (source[i] === '.') {
+          while (i < source.length && (isDigit(source[i]) || source[i] === '.')) num += source[i++];
+          tokens.push({ type: 'Error', value: num, line: lineNum, errorKey: 'NUM_DECIMAL_MAL' });
+        } else {
+          tokens.push({ type: 'Número_Decimal', value: num, line: lineNum });
+        }
+      } else {
+        tokens.push({ type: 'Número_Entero', value: num, line: lineNum });
+      }
       continue;
     }
 
-    // Asignación
-    if (ch === ':' && source[i+1] === '=') {
-      tokens.push({ type: 'Asignación', value: ':=', line: lineNum }); i += 2; continue;
-    }
-    if (ch === ':') {
-      tokens.push({ type: 'Error', value: ':', line: lineNum, errorKey: 'ASIGN_INCOMPLETA' }); i++; continue;
-    }
-
-    // Operadores relacionales de 2 caracteres
+    // Operadores de 2 caracteres (incluyendo :=, ==, !=, >=, <=, &&, ||)
     const two = source[i] + (source[i+1] || '');
     if (OPERADORES_RELACIONALES_2.has(two)) {
-      tokens.push({ type: 'Relacional', value: two, line: lineNum }); i += 2; continue;
+      if (two === ':=') {
+        tokens.push({ type: 'Asignación', value: ':=', line: lineNum });
+      } else if (two === '&&' || two === '||') {
+        tokens.push({ type: 'Operador_Lógico', value: two, line: lineNum });
+      } else {
+        tokens.push({ type: 'Relacional', value: two, line: lineNum });
+      }
+      i += 2; continue;
+    }
+
+    // Dos puntos solos = error de asignación incompleta
+    if (ch === ':') {
+      tokens.push({ type: 'Error', value: ':', line: lineNum, errorKey: 'ASIGN_INCOMPLETA' });
+      i++; continue;
     }
 
     // Operadores aritméticos
@@ -196,9 +208,9 @@ function analyzeLexer(source) {
       tokens.push({ type: 'Operador_Aritmético', value: ch, line: lineNum }); i++; continue;
     }
 
-    // Operadores relacionales de 1 carácter
+    // Delimitadores y relacionales de 1 carácter
     if (OPERADORES_RELACIONALES_1.has(ch)) {
-      tokens.push({ type: 'Relacional', value: ch, line: lineNum }); i++; continue;
+      tokens.push({ type: 'Delimitador', value: ch, line: lineNum }); i++; continue;
     }
 
     // Carácter no reconocido

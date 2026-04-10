@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Analizador Léxico</title>
+  <title>NenScript — Analizador Léxico</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -11,8 +11,13 @@
   <div class="container">
 
     <header class="page-header">
-      <h1>Analizador Léxico</h1>
-      <p>Compiladores &mdash; Universidad Mariano Gálvez de Guatemala &mdash; Ciclo 2026</p>
+      <h1>Nen<span>Script</span> — Analizador Léxico</h1>
+      <p>Compiladores &mdash; Universidad Mariano Gálvez de Guatemala &mdash; Campus Jutiapa 2026</p>
+      <div class="header-tags">
+        <span class="htag htag-purple">Lenguaje temático: Hunter x Hunter</span>
+        <span class="htag htag-teal">Herramienta: JavaScript vanilla</span>
+        <span class="htag htag-amber">Palabras reservadas: 19</span>
+      </div>
     </header>
 
     <div class="two-col">
@@ -20,18 +25,18 @@
       <!-- Editor -->
       <section class="panel">
         <div class="panel-header">
-          <h2>Código Fuente</h2>
+          <h2>Código Fuente NenScript</h2>
           <span class="hint">Ctrl+Enter para analizar</span>
         </div>
         <textarea id="sourceCode" spellcheck="false"
-          placeholder="// Escribe o pega tu código fuente aquí...
-int contador := 0;
-if (contador <= 100) {
-  print &quot;asdfg resultado&quot;;
-}"></textarea>
+          placeholder="// Escribe tu código NenScript aquí...
+nen MiPrograma:
+    gon vida := 100 ;
+    shu( &quot;Aura activa&quot; ) ;
+ko"></textarea>
         <div class="controls">
-          <button class="btn btn-primary" onclick="analyze()">▶ Analizar</button>
-          <button class="btn btn-secondary" onclick="loadExample()">Cargar Ejemplo</button>
+          <button class="btn btn-primary"    onclick="analyze()">▶ Analizar</button>
+          <button class="btn btn-secondary"  onclick="loadExample()">Cargar Ejemplo</button>
           <button id="btnErrors" class="btn btn-danger" onclick="toggleErrorTable()" style="display:none">
             ⚠ Ver Errores <span id="btnErrorBadge" class="badge"></span>
           </button>
@@ -46,7 +51,7 @@ if (contador <= 100) {
           <span id="tokenCount" class="count-label">—</span>
         </div>
         <div id="results" class="results-area">
-          <div class="empty-msg">Sin análisis aún. Escribe código y presiona Analizar.</div>
+          <div class="empty-msg">Sin análisis aún. Escribe código NenScript y presiona Analizar.</div>
         </div>
         <div id="statsBar" class="stats-bar" style="display:none">
           <span>Total: <strong id="s-total">0</strong></span>
@@ -59,11 +64,11 @@ if (contador <= 100) {
 
     </div>
 
-    <!-- Tablas lado a lado -->
-    <div class="two-col" id="tablesRow" style="display:none">
+    <!-- Tabla de símbolos + tabla de errores -->
+    <div id="tablesRow" class="tables-row-wrapper" style="display:none">
 
       <!-- Tabla de Símbolos -->
-      <section class="panel" id="symbolTablePanel">
+      <section class="panel">
         <div class="panel-header">
           <h2>Tabla de Símbolos</h2>
           <span id="symbolCount" class="count-label">—</span>
@@ -72,8 +77,12 @@ if (contador <= 100) {
           <table>
             <thead>
               <tr>
-                <th>#</th><th>Nombre</th><th>Tipo</th>
-                <th>Línea</th><th>Apariciones</th><th>Usos</th>
+                <th>#</th>
+                <th>Identificador</th>
+                <th>Tipo NenScript</th>
+                <th>Línea decl.</th>
+                <th>Apariciones</th>
+                <th>Usos</th>
               </tr>
             </thead>
             <tbody id="symbolTableBody"></tbody>
@@ -81,18 +90,21 @@ if (contador <= 100) {
         </div>
       </section>
 
-      <!-- Tabla de Errores -->
+      <!-- Tabla de Errores (oculta hasta que se presione el botón) -->
       <section class="panel" id="errorTablePanel" style="display:none">
         <div class="panel-header">
-          <h2>Tabla de Errores</h2>
+          <h2>Tabla de Errores Léxicos</h2>
           <span id="errorCount" class="count-label">—</span>
         </div>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>#</th><th>Valor</th><th>Tipo de Error</th>
-                <th>Descripción</th><th>Línea</th>
+                <th>#</th>
+                <th>Token con error</th>
+                <th>Tipo de error</th>
+                <th>Descripción</th>
+                <th>Línea</th>
               </tr>
             </thead>
             <tbody id="errorTableBody"></tbody>
@@ -100,10 +112,10 @@ if (contador <= 100) {
         </div>
       </section>
 
-    </div><!-- /tablesRow -->
+    </div>
 
     <footer class="page-footer">
-      Analizador Léxico &mdash; Compiladores 2026 &mdash; UMG
+      NenScript Lexer &mdash; Compiladores 2026 &mdash; UMG Campus Jutiapa
     </footer>
 
   </div>
