@@ -51,7 +51,7 @@ function renderTokens(tokens) {
       <span class="token-num">${idx + 1}</span>
       <span class="token-type tt-${info.css}">${info.label}</span>
       <span class="token-value">${displayValue}</span>
-      <span class="token-line">L${tok.line}</span>
+      <span class="token-line">L${tok.line}:C${tok.column}</span>
     `;
     container.appendChild(row);
   });
@@ -79,12 +79,18 @@ function renderSymbolTable(symbolTable) {
     const aparicionesBadges = entry.apariciones
       .map(l => `<span class="line-badge">L${l}</span>`).join('');
 
+    const valorMostrado = entry.valor === '—'
+      ? '<span style="color:#9ca3af">—</span>'
+      : `<code>${escapeHtml(entry.valor)}</code>`;
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${idx + 1}</td>
       <td><code>${escapeHtml(entry.nombre)}</code></td>
       <td><span class="type-pill type-${tipoCss}">${entry.tipo}</span></td>
+      <td>${valorMostrado}</td>
       <td>L${entry.lineaDecl}</td>
+      <td>C${entry.columnaDecl}</td>
       <td>${aparicionesBadges}</td>
       <td><strong>${entry.usos}</strong></td>
     `;
@@ -107,6 +113,7 @@ function renderErrorTable(errorTable) {
       <td><span class="type-pill type-err">${escapeHtml(entry.tipo)}</span></td>
       <td style="color:#6b7280">${escapeHtml(entry.desc)}</td>
       <td>L${entry.line}</td>
+      <td>C${entry.column}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -195,6 +202,9 @@ nen HunterExam:
     kurapika nombre    := "Gon Freecss" ;
     leorio   activo    := verdad ;
 
+    // Constante con yorknew
+    yorknew killua PI := 3.14 ;
+
     // Funcion que saluda
     hatsu saludar( kurapika x ):
         shu( x ) ;
@@ -228,7 +238,10 @@ identificadorDemasiadoLargoParaNenScript := 1 ;
 msg := 'comilla simple invalida' ;
 x := 3.4.5 ;
 @ simbolo_raro ;
-: asignacion_rota ;`;
+nombre := "cadena sin cerrar
+edad = 5 ;
+GON contador := 7 ;
+Hatsu mal := 2 ;`;
   analyze();
 }
 
