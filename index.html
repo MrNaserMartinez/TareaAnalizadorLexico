@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NenScript — Analizador Léxico</title>
+  <title>NenScript — Analizador Léxico y Sintáctico</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
   <div class="container">
 
     <header class="page-header">
-      <h1>Nen<span>Script</span> — Analizador Léxico</h1>
+      <h1>Nen<span>Script</span> — Analizador Léxico y Sintáctico</h1>
       <p>Compiladores &mdash; Universidad Mariano Gálvez de Guatemala &mdash; Campus Jutiapa 2026</p>
       <div class="header-tags">
         <span class="htag htag-purple">Lenguaje temático: Hunter x Hunter</span>
@@ -64,10 +64,36 @@ ko"></textarea>
 
     </div>
 
-    <!-- Tabla de símbolos + tabla de errores -->
+    <!-- Árbol sintáctico (colapsado por defecto) -->
+    <section class="panel" id="parseTreePanel" style="display:none">
+      <div class="panel-header tree-header">
+        <div class="tree-header-left">
+          <h2>Análisis Sintáctico</h2>
+          <span id="parseTreeStatus" class="count-label">—</span>
+        </div>
+        <div class="tree-header-right">
+          <button id="btnViewTree" class="btn btn-tree" onclick="toggleTreePanel()">
+            ▾ Ver Árbol de Derivación
+          </button>
+        </div>
+      </div>
+
+      <div id="parseTreeBody" style="display:none">
+        <div class="tree-toolbar">
+          <span class="tree-toolbar-label">Vista:</span>
+          <button id="btnTreeGraphical" class="btn btn-toggle btn-toggle-active"
+                  onclick="setTreeView('graphical')">🌳 Gráfica</button>
+          <button id="btnTreeTextual"   class="btn btn-toggle"
+                  onclick="setTreeView('text')">📄 Texto</button>
+          <span class="tree-toolbar-hint">Pasa el cursor sobre cada nodo para ver su detalle</span>
+        </div>
+        <div id="parseTreeContainer" class="tree-container"></div>
+      </div>
+    </section>
+
+    <!-- Tablas: símbolos + errores léxicos + errores sintácticos -->
     <div id="tablesRow" class="tables-row-wrapper" style="display:none">
 
-      <!-- Tabla de Símbolos -->
       <section class="panel">
         <div class="panel-header">
           <h2>Tabla de Símbolos</h2>
@@ -92,7 +118,6 @@ ko"></textarea>
         </div>
       </section>
 
-      <!-- Tabla de Errores (oculta hasta que se presione el botón) -->
       <section class="panel" id="errorTablePanel" style="display:none">
         <div class="panel-header">
           <h2>Tabla de Errores Léxicos</h2>
@@ -115,15 +140,37 @@ ko"></textarea>
         </div>
       </section>
 
+      <section class="panel" id="syntaxErrorPanel" style="display:none">
+        <div class="panel-header">
+          <h2>Tabla de Errores Sintácticos</h2>
+          <span id="syntaxErrorCount" class="count-label">—</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Token cercano</th>
+                <th>Descripción</th>
+                <th>Línea</th>
+                <th>Columna</th>
+              </tr>
+            </thead>
+            <tbody id="syntaxErrorBody"></tbody>
+          </table>
+        </div>
+      </section>
+
     </div>
 
     <footer class="page-footer">
-      NenScript Lexer &mdash; Compiladores 2026 &mdash; UMG Campus Jutiapa
+      NenScript Compiler &mdash; Compiladores 2026 &mdash; UMG Campus Jutiapa
     </footer>
 
   </div>
 
   <script src="js/lexer.js"></script>
+  <script src="js/parser.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
