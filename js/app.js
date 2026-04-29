@@ -20,7 +20,10 @@ let lastErrorTable    = [];
 let lastSyntaxErrors  = [];
 let lastParseTree     = null;
 let errorTableVisible = false;
-let treeViewMode      = 'graphical'; // 'graphical' | 'text'
+let treeViewMode      = 'graphical';
+
+// Estado de zoom y pan del SVG
+let zoomState = { vx: 0, vy: 0, vw: 0, vh: 0, baseW: 0, baseH: 0 };
 
 function escapeHtml(str) {
   return String(str)
@@ -152,43 +155,43 @@ function renderSyntaxErrors(errors) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// ÁRBOL DE DERIVACIÓN — Vista gráfica (SVG) y vista de texto
+// ÁRBOL DE DERIVACIÓN — Vista gráfica (SVG interactivo) y vista de texto
 // ════════════════════════════════════════════════════════════════════════
 
-// Decide si un nodo es terminal (sin hijos)
 function isTerminal(node) {
   return !node.children || node.children.length === 0;
 }
 
-// Convierte el label crudo del parser a la forma que se muestra en el árbol gráfico
-// Ejemplos:
-//   "programa"                  → "<programa>"
-//   "lista_inst"                → "<lista_inst>"
-//   "expr_aritmetica (+)"       → "<expr_aritmetica> +"
-//   "'nen' [L1:C1]"             → "nen"
-//   "tipo (gon) [L2:C5]"        → "gon"
-//   "ENTERO (100) [L2:C27]"     → "100"
-//   "IDENT (vida) [L2:C9]"      → "vida"
+// Cuenta los descendientes ocultos cuando un nodo está colapsado
+function countDescendants(node) {
+  if (!node.children) return 0;
+  let n = node.children.length;
+  for (const c of node.children) n += countDescendants(c);
+  return n;
+}
+
 function graphicalLabel(node) {
   let label = String(node.label || '').replace(/\s*\[L\d+:C\d+\]\s*$/, '').trim();
 
   if (isTerminal(node)) {
-    // Terminales: "'X'" -> X, o "TYPE (value)" -> value
     const m1 = label.match(/^'([^']+)'$/);
     if (m1) return m1[1];
     const m2 = label.match(/^[A-Za-z_]+\s*\(([^)]+)\)$/);
     if (m2) return m2[1];
     return label;
   }
-  // No terminales con info adicional, p. ej. "expr_aritmetica (+)"
   const m = label.match(/^([a-zA-Z_]+)\s*\(([^)]+)\)$/);
   if (m) return `<${m[1]}> ${m[2]}`;
   return `<${label}>`;
 }
 
-// Layout del árbol: cada hoja ocupa un slot de ancho 1; los internos se centran sobre sus hijos.
+// Considera el estado _collapsed: si el nodo está colapsado, sus hijos no se cuentan
+function isEffectivelyTerminal(node) {
+  return isTerminal(node) || node._collapsed;
+}
+
 function computeSubtreeWidth(node) {
-  if (isTerminal(node)) { node._w = 1; return 1; }
+  if (isEffectivelyTerminal(node)) { node._w = 1; return 1; }
   let total = 0;
   for (const c of node.children) total += computeSubtreeWidth(c);
   node._w = Math.max(total, 1);
@@ -196,7 +199,7 @@ function computeSubtreeWidth(node) {
 }
 
 function computeLayout(node, x = 0, depth = 0) {
-  if (isTerminal(node)) {
+  if (isEffectivelyTerminal(node)) {
     node._x = x + 0.5;
     node._d = depth;
     return;
@@ -212,84 +215,111 @@ function computeLayout(node, x = 0, depth = 0) {
 }
 
 function maxDepth(node) {
-  if (isTerminal(node)) return node._d;
+  if (isEffectivelyTerminal(node)) return node._d;
   return Math.max(...node.children.map(c => maxDepth(c)));
 }
 
-// Recorre todos los nodos para enumerarlos
-function flattenNodes(node, list = []) {
+function flattenVisibleNodes(node, list = []) {
   list.push(node);
-  if (node.children) for (const c of node.children) flattenNodes(c, list);
+  if (node._collapsed) return list;
+  if (node.children) for (const c of node.children) flattenVisibleNodes(c, list);
   return list;
 }
 
-// Genera el SVG del árbol
+// Genera el SVG del árbol con interactividad completa
 function buildTreeSVG(tree) {
   if (!tree) return null;
 
-  // Layout
   computeSubtreeWidth(tree);
   computeLayout(tree);
 
-  // Dimensiones por slot
-  const slotW = 130;          // ancho de un slot horizontal
-  const levelH = 78;          // altura entre niveles
-  const padding = 24;         // padding general
-  const nodeW = 110;          // ancho del rectángulo del nodo
-  const nodeH = 32;           // altura del rectángulo del nodo
+  const slotW = 130;
+  const levelH = 78;
+  const padding = 30;
+  const nodeW = 110;
+  const nodeH = 32;
 
   const totalLeaves = tree._w;
   const depth = maxDepth(tree);
   const width  = totalLeaves * slotW + padding * 2;
   const height = (depth + 1) * levelH + padding * 2;
 
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('width',  width);
-  svg.setAttribute('height', height);
+  // Guardar dimensiones base para el reset de zoom
+  zoomState.baseW = width;
+  zoomState.baseH = height;
+  zoomState.vx = 0;
+  zoomState.vy = 0;
+  zoomState.vw = width;
+  zoomState.vh = height;
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   svg.setAttribute('class', 'parse-tree-svg');
+  svg.style.width  = '100%';
+  svg.style.height = '600px';
 
   const px = (x) => padding + x * slotW;
   const py = (d) => padding + d * levelH + nodeH / 2;
 
-  // 1. Dibujar líneas (edges) primero para que queden detrás
-  const allNodes = flattenNodes(tree);
-  for (const n of allNodes) {
+  // Capa de líneas (edges)
+  const edgesGroup = document.createElementNS(svgNS, 'g');
+  edgesGroup.setAttribute('class', 'tree-edges');
+  svg.appendChild(edgesGroup);
+
+  // Capa de nodos
+  const nodesGroup = document.createElementNS(svgNS, 'g');
+  nodesGroup.setAttribute('class', 'tree-nodes');
+  svg.appendChild(nodesGroup);
+
+  const visibleNodes = flattenVisibleNodes(tree);
+
+  // Dibujar líneas
+  for (const n of visibleNodes) {
+    if (n._collapsed) continue;
     if (!n.children) continue;
     const x1 = px(n._x);
     const y1 = py(n._d) + nodeH / 2;
     for (const c of n.children) {
       const x2 = px(c._x);
       const y2 = py(c._d) - nodeH / 2;
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      const line = document.createElementNS(svgNS, 'line');
       line.setAttribute('x1', x1);
       line.setAttribute('y1', y1);
       line.setAttribute('x2', x2);
       line.setAttribute('y2', y2);
       line.setAttribute('class', 'tree-edge');
-      svg.appendChild(line);
+      edgesGroup.appendChild(line);
     }
   }
 
-  // 2. Dibujar nodos encima
-  for (const n of allNodes) {
+  // Dibujar nodos
+  for (const n of visibleNodes) {
     const cx = px(n._x);
     const cy = py(n._d);
-    const terminal = isTerminal(n);
-    const rectClass = terminal ? 'tree-rect tree-rect-terminal' : 'tree-rect tree-rect-nonterminal';
+    const terminal       = isTerminal(n);
+    const collapsed      = !!n._collapsed;
+    const clickable      = !terminal;
 
-    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    let cls = 'tree-rect ';
+    if (terminal)       cls += 'tree-rect-terminal';
+    else if (collapsed) cls += 'tree-rect-collapsed';
+    else                cls += 'tree-rect-nonterminal';
+
+    const g = document.createElementNS(svgNS, 'g');
     g.setAttribute('transform', `translate(${cx - nodeW/2}, ${cy - nodeH/2})`);
+    g.setAttribute('class', 'tree-node-group' + (clickable ? ' tree-node-clickable' : ''));
 
-    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    const rect = document.createElementNS(svgNS, 'rect');
     rect.setAttribute('width',  nodeW);
     rect.setAttribute('height', nodeH);
     rect.setAttribute('rx', 6);
     rect.setAttribute('ry', 6);
-    rect.setAttribute('class', rectClass);
+    rect.setAttribute('class', cls);
     g.appendChild(rect);
 
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    const text = document.createElementNS(svgNS, 'text');
     text.setAttribute('x', nodeW / 2);
     text.setAttribute('y', nodeH / 2);
     text.setAttribute('class', terminal ? 'tree-text tree-text-terminal' : 'tree-text tree-text-nonterminal');
@@ -297,23 +327,127 @@ function buildTreeSVG(tree) {
     text.setAttribute('dominant-baseline', 'central');
 
     let lbl = graphicalLabel(n);
-    // Truncar etiquetas muy largas para que entren en la caja
+    if (collapsed) {
+      const hidden = countDescendants(n);
+      lbl += ` ▸${hidden}`;
+    }
     if (lbl.length > 16) lbl = lbl.slice(0, 14) + '…';
     text.textContent = lbl;
 
-    // Tooltip con info completa
-    const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-    title.textContent = n.label + (n.token ? ` — L${n.token.line}:C${n.token.column}` : '');
+    const title = document.createElementNS(svgNS, 'title');
+    let tt = n.label;
+    if (n.token) tt += ` — L${n.token.line}:C${n.token.column}`;
+    if (clickable) tt += collapsed ? ' (click para expandir)' : ' (click para colapsar)';
+    title.textContent = tt;
     g.appendChild(title);
 
     g.appendChild(text);
-    svg.appendChild(g);
+
+    // Click handler para colapsar/expandir
+    if (clickable) {
+      g.addEventListener('click', (e) => {
+        e.stopPropagation();
+        n._collapsed = !n._collapsed;
+        renderParseTreeContent();
+      });
+    }
+
+    nodesGroup.appendChild(g);
   }
 
   return svg;
 }
 
-// Renderizado de árbol en modo TEXTO (HTML jerárquico)
+// ── Zoom / Pan / Reset ────────────────────────────────────────────────
+function applyViewBox() {
+  const svg = document.querySelector('.parse-tree-svg');
+  if (!svg) return;
+  svg.setAttribute('viewBox',
+    `${zoomState.vx} ${zoomState.vy} ${zoomState.vw} ${zoomState.vh}`);
+
+  // Mostrar el porcentaje actual de zoom
+  const pct = Math.round((zoomState.baseW / zoomState.vw) * 100);
+  const indicator = document.getElementById('zoomIndicator');
+  if (indicator) indicator.textContent = `${pct}%`;
+}
+
+function zoomBy(factor, anchorX, anchorY) {
+  // anchorX/Y en coordenadas relativas (0..1) del SVG
+  const newW = zoomState.vw * factor;
+  const newH = zoomState.vh * factor;
+
+  // Mantener el punto bajo el cursor estable
+  if (anchorX !== undefined && anchorY !== undefined) {
+    zoomState.vx += (zoomState.vw - newW) * anchorX;
+    zoomState.vy += (zoomState.vh - newH) * anchorY;
+  } else {
+    zoomState.vx += (zoomState.vw - newW) / 2;
+    zoomState.vy += (zoomState.vh - newH) / 2;
+  }
+  zoomState.vw = newW;
+  zoomState.vh = newH;
+  applyViewBox();
+}
+
+function zoomIn()  { zoomBy(0.8); }
+function zoomOut() { zoomBy(1.25); }
+function zoomReset() {
+  zoomState.vx = 0;
+  zoomState.vy = 0;
+  zoomState.vw = zoomState.baseW;
+  zoomState.vh = zoomState.baseH;
+  applyViewBox();
+}
+
+function expandAll() {
+  function uncollapse(n) {
+    n._collapsed = false;
+    if (n.children) for (const c of n.children) uncollapse(c);
+  }
+  if (lastParseTree) uncollapse(lastParseTree);
+  renderParseTreeContent();
+}
+
+function attachSvgInteractivity(svg) {
+  if (!svg) return;
+
+  // Wheel zoom
+  svg.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = svg.getBoundingClientRect();
+    const ax = (e.clientX - rect.left) / rect.width;
+    const ay = (e.clientY - rect.top)  / rect.height;
+    const factor = e.deltaY > 0 ? 1.1 : 0.9;
+    zoomBy(factor, ax, ay);
+  }, { passive: false });
+
+  // Drag pan
+  let panning = false;
+  let panStart = null;
+  svg.addEventListener('mousedown', (e) => {
+    // Solo paneamos si NO estamos sobre un nodo clickeable (para no robar clicks)
+    if (e.target.closest('.tree-node-clickable')) return;
+    panning = true;
+    panStart = { cx: e.clientX, cy: e.clientY, vx: zoomState.vx, vy: zoomState.vy };
+    svg.classList.add('parse-tree-svg-panning');
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!panning) return;
+    const rect = svg.getBoundingClientRect();
+    const ratioX = zoomState.vw / rect.width;
+    const ratioY = zoomState.vh / rect.height;
+    zoomState.vx = panStart.vx - (e.clientX - panStart.cx) * ratioX;
+    zoomState.vy = panStart.vy - (e.clientY - panStart.cy) * ratioY;
+    applyViewBox();
+  });
+  window.addEventListener('mouseup', () => {
+    if (!panning) return;
+    panning = false;
+    svg.classList.remove('parse-tree-svg-panning');
+  });
+}
+
+// Vista TEXTO (jerarquía indentada)
 function buildTextTree(tree) {
   const root = document.createElement('div');
   root.className = 'tree-text-view';
@@ -350,29 +484,37 @@ function buildTextNode(node) {
   return wrapper;
 }
 
-// Renderiza el árbol en el contenedor según el modo activo
+// Renderiza el árbol según el modo activo
 function renderParseTreeContent() {
   const container = document.getElementById('parseTreeContainer');
+  const toolbar2  = document.getElementById('treeToolbar2');
   if (!container) return;
   container.innerHTML = '';
 
   if (!lastParseTree) {
     container.innerHTML = '<div class="empty-msg">No hay árbol para mostrar.</div>';
+    if (toolbar2) toolbar2.style.display = 'none';
     return;
   }
 
   if (treeViewMode === 'graphical') {
     container.classList.add('tree-graphical');
     container.classList.remove('tree-textual');
+    if (toolbar2) toolbar2.style.display = 'flex';
+
     const svg = buildTreeSVG(lastParseTree);
-    if (svg) container.appendChild(svg);
+    if (svg) {
+      container.appendChild(svg);
+      attachSvgInteractivity(svg);
+      applyViewBox();
+    }
   } else {
     container.classList.add('tree-textual');
     container.classList.remove('tree-graphical');
+    if (toolbar2) toolbar2.style.display = 'none';
     container.appendChild(buildTextTree(lastParseTree));
   }
 
-  // Actualiza estado de los botones
   document.getElementById('btnTreeGraphical').classList.toggle('btn-toggle-active', treeViewMode === 'graphical');
   document.getElementById('btnTreeTextual').classList.toggle('btn-toggle-active', treeViewMode === 'text');
 }
@@ -382,7 +524,6 @@ function setTreeView(mode) {
   renderParseTreeContent();
 }
 
-// Toggle de visibilidad del panel completo
 function toggleTreePanel() {
   const panel = document.getElementById('parseTreePanel');
   const body  = document.getElementById('parseTreeBody');
@@ -401,21 +542,17 @@ function toggleTreePanel() {
   }
 }
 
-// Mostrar el panel del árbol (cabecera + botón) cuando hay árbol disponible
 function setupTreeAvailability(tree, hasErrors) {
-  const panel = document.getElementById('parseTreePanel');
-  const body  = document.getElementById('parseTreeBody');
+  const panel  = document.getElementById('parseTreePanel');
+  const body   = document.getElementById('parseTreeBody');
   const status = document.getElementById('parseTreeStatus');
-  const btn   = document.getElementById('btnViewTree');
+  const btn    = document.getElementById('btnViewTree');
 
   lastParseTree = tree;
 
-  if (!tree) {
-    panel.style.display = 'none';
-    return;
-  }
+  if (!tree) { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
-  body.style.display  = 'none'; // arranca colapsado
+  body.style.display  = 'none';
   btn.innerHTML       = '▾ Ver Árbol de Derivación';
   btn.disabled        = false;
 
@@ -450,9 +587,7 @@ function toggleErrorTable() {
       lexPanel.style.display = 'flex';
       lexPanel.style.flexDirection = 'column';
     }
-    if (lastSyntaxErrors.length) {
-      renderSyntaxErrors(lastSyntaxErrors);
-    }
+    if (lastSyntaxErrors.length) renderSyntaxErrors(lastSyntaxErrors);
     document.getElementById('tablesRow').scrollIntoView({ behavior: 'smooth', block: 'start' });
     const total = (lastErrorTable.length || 0) + (lastSyntaxErrors.length || 0);
     btn.innerHTML = `✕ Ocultar Errores <span id="btnErrorBadge" class="badge">${total}</span>`;
@@ -485,7 +620,6 @@ function analyze() {
   document.getElementById('errorTablePanel').style.display  = 'none';
   document.getElementById('syntaxErrorPanel').style.display = 'none';
 
-  // 1. Análisis Léxico
   const { tokens, symbolTable, errorTable } = analyzeLexer(code);
   lastErrorTable = errorTable;
 
@@ -494,7 +628,6 @@ function analyze() {
   renderSymbolTable(symbolTable);
   document.getElementById('tokenCount').textContent = `${tokens.length} tokens`;
 
-  // 2. Análisis Sintáctico
   let syntaxErrors = [];
   let parseTree    = null;
   if (typeof analyzeParser === 'function') {
@@ -506,9 +639,7 @@ function analyze() {
 
   setupTreeAvailability(parseTree, syntaxErrors.length > 0);
 
-  if (syntaxErrors.length > 0) {
-    renderSyntaxErrors(syntaxErrors);
-  }
+  if (syntaxErrors.length > 0) renderSyntaxErrors(syntaxErrors);
 
   updateErrorButton(errorTable, syntaxErrors);
 }
@@ -529,7 +660,6 @@ function clearAll() {
   errorTableVisible = false;
 }
 
-// Ejemplo de prueba con código NenScript válido
 function loadExample() {
   document.getElementById('sourceCode').value =
 `// Programa de ejemplo en NenScript

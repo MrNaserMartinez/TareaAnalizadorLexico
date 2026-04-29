@@ -274,39 +274,65 @@ code { font-family: monospace; font-size: 0.82rem; color: var(--text); }
   font-size: 0.7rem; color: var(--text-light); font-style: italic;
 }
 
+.tree-toolbar-zoom {
+  background: #f5f3ff;
+  border-top: none;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.zoom-indicator {
+  font-size: 0.72rem; font-weight: 600;
+  color: var(--accent); background: #ede9fe;
+  border: 1px solid #c4b5fd; border-radius: 4px;
+  padding: 2px 8px; min-width: 50px; text-align: center;
+  font-family: 'Consolas', monospace;
+}
+
 .tree-container {
-  overflow: auto;
+  overflow: hidden;
   background: linear-gradient(180deg, #fdfcff, #f5f3ff);
-  padding: 16px;
+  padding: 0;
   min-height: 200px;
   max-height: 700px;
+  position: relative;
 }
 
 /* ── Vista GRÁFICA (SVG) ────────────────────────────────── */
 .tree-container.tree-graphical {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  display: block;
+  overflow: hidden;
+  cursor: grab;
 }
 .parse-tree-svg {
   display: block;
   background: transparent;
+  cursor: grab;
 }
+.parse-tree-svg-panning, .parse-tree-svg-panning .tree-node-group {
+  cursor: grabbing !important;
+}
+
 /* Líneas que conectan nodos */
 .parse-tree-svg .tree-edge {
   stroke: #a78bfa;
   stroke-width: 1.4;
   fill: none;
+  transition: stroke 0.15s, stroke-width 0.15s;
 }
+
 /* Cajas de nodos */
 .parse-tree-svg .tree-rect {
   stroke-width: 1.2;
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.06));
-  cursor: default;
-  transition: filter 0.2s;
+  transition: filter 0.2s, stroke-width 0.15s, transform 0.15s;
 }
-.parse-tree-svg .tree-rect:hover {
-  filter: drop-shadow(0 2px 6px rgba(124,58,237,0.30));
+.parse-tree-svg .tree-node-group {
+  transition: transform 0.18s;
+}
+.parse-tree-svg .tree-node-clickable { cursor: pointer; }
+.parse-tree-svg .tree-node-clickable:hover .tree-rect {
+  filter: drop-shadow(0 3px 8px rgba(124,58,237,0.40));
+  stroke-width: 2;
 }
 .parse-tree-svg .tree-rect-nonterminal {
   fill: #ede9fe;
@@ -316,12 +342,17 @@ code { font-family: monospace; font-size: 0.82rem; color: var(--text); }
   fill: #fffbeb;
   stroke: #fbbf24;
 }
+.parse-tree-svg .tree-rect-collapsed {
+  fill: #fef3c7;
+  stroke: #d97706;
+  stroke-width: 1.8;
+  stroke-dasharray: 4 2;
+}
 /* Texto dentro de cada nodo */
 .parse-tree-svg .tree-text {
   font-family: 'Segoe UI', system-ui, sans-serif;
   font-size: 11.5px;
   pointer-events: none;
-  user-select: none;
 }
 .parse-tree-svg .tree-text-nonterminal {
   fill: #5b21b6;

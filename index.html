@@ -85,7 +85,15 @@ ko"></textarea>
                   onclick="setTreeView('graphical')">🌳 Gráfica</button>
           <button id="btnTreeTextual"   class="btn btn-toggle"
                   onclick="setTreeView('text')">📄 Texto</button>
-          <span class="tree-toolbar-hint">Pasa el cursor sobre cada nodo para ver su detalle</span>
+          <span class="tree-toolbar-hint">Click en un nodo para colapsarlo · arrastra para mover · rueda para zoom</span>
+        </div>
+        <div id="treeToolbar2" class="tree-toolbar tree-toolbar-zoom" style="display:none">
+          <span class="tree-toolbar-label">Zoom:</span>
+          <button class="btn btn-toggle" onclick="zoomIn()"  title="Acercar">➕</button>
+          <button class="btn btn-toggle" onclick="zoomOut()" title="Alejar">➖</button>
+          <button class="btn btn-toggle" onclick="zoomReset()" title="Restablecer zoom">⟲ Reset</button>
+          <span id="zoomIndicator" class="zoom-indicator">100%</span>
+          <button class="btn btn-toggle" onclick="expandAll()" title="Expandir todos los nodos colapsados">⇲ Expandir todo</button>
         </div>
         <div id="parseTreeContainer" class="tree-container"></div>
       </div>
