@@ -36,7 +36,11 @@
 
       <div class="theme-cards">
         <button class="theme-card theme-card-gon" onclick="chooseTheme('gon')">
-          <span class="theme-card-emblem">G</span>
+          <span class="theme-card-emblem">
+            <img src="gonFrec.jpg" alt="Gon" class="theme-card-img"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+            <span class="theme-card-initial">G</span>
+          </span>
           <span class="theme-card-name">Gon</span>
           <span class="theme-card-tag">Tema verde</span>
           <span class="theme-card-swatches">
@@ -47,7 +51,11 @@
         </button>
 
         <button class="theme-card theme-card-killua" onclick="chooseTheme('killua')">
-          <span class="theme-card-emblem">K</span>
+          <span class="theme-card-emblem">
+            <img src="killuaZol.jpg" alt="Killua" class="theme-card-img"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+            <span class="theme-card-initial">K</span>
+          </span>
           <span class="theme-card-name">Killua</span>
           <span class="theme-card-tag">Tema blanco / morado</span>
           <span class="theme-card-swatches">
@@ -62,16 +70,22 @@
     </div>
   </div>
 
-  <!-- ════════════ Aplicación principal ════════════ -->
+  <!--Aplicación-->
   <div class="container">
 
     <header class="page-header">
       <div class="page-header-row">
+        <!-- Imagen del personaje activo (cambia con el tema) -->
+        <div class="header-char-portrait">
+          <img src="gonFrec.jpg"    alt="Gon"    class="char-portrait char-portrait-gon"
+               onerror="this.style.display='none'">
+          <img src="killuaZol.jpg" alt="Killua" class="char-portrait char-portrait-killua"
+               onerror="this.style.display='none'">
+        </div>
         <div>
           <h1>Nen<span>Script</span> — Analizador Léxico y Sintáctico</h1>
           <p>Compiladores &mdash; Universidad Mariano Gálvez de Guatemala &mdash; Campus Jutiapa 2026</p>
         </div>
-        <!-- Toggle de tema Gon ↔ Killua estilo claro/oscuro -->
         <div class="theme-toggle-wrap">
           <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">
             <span class="theme-toggle-side theme-toggle-gon">Gon</span>
@@ -89,7 +103,6 @@
 
     <div class="two-col">
 
-      <!-- Editor -->
       <section class="panel">
         <div class="panel-header">
           <h2>Código Fuente NenScript</h2>
@@ -166,7 +179,7 @@ ko"></textarea>
       </div>
     </section>
 
-    <!-- Tablas: símbolos + errores -->
+    <!-- Tablas: símbolos y errores -->
     <div id="tablesRow" class="tables-row-wrapper" style="display:none">
 
       <section class="panel">
@@ -244,13 +257,7 @@ ko"></textarea>
 
   </div>
 
-  <!--
-    Reproductor de música flotante. Las canciones se cargan de:
-      audio/gon-theme.mp3
-      audio/killua-theme.mp3
-    Crea la carpeta audio/ a la altura de index.html y coloca esos archivos
-    (también acepta .ogg o .wav cambiando la extensión en los src de abajo).
-  -->
+  <!--manejo de audios  -->
   <audio id="audioGon"    src="gon.mp3"    loop preload="none"></audio>
   <audio id="audioKillua" src="killua.mp3" loop preload="none"></audio>
 

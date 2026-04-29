@@ -711,18 +711,30 @@ ko`;
 // Bienvenida → selector de tema
 function enterCompiler() {
   const welcome = document.getElementById('welcomeOverlay');
+  const picker  = document.getElementById('themePicker');
+
+  // FIX BUG 1: Mostramos el selector de tema ANTES de iniciar el fade del
+  // welcome, así queda debajo del overlay que se desvanece y el compilador
+  // nunca queda expuesto durante la transición.
+  picker.style.display = 'flex';
+  picker.classList.remove('overlay-hide');
+
   welcome.classList.add('overlay-hide');
   setTimeout(() => {
     welcome.style.display = 'none';
-    const picker = document.getElementById('themePicker');
-    picker.style.display = 'flex';
-    picker.classList.remove('overlay-hide');
   }, 380);
 }
 
 // Aplicar tema y cerrar el selector
 function chooseTheme(theme) {
   applyTheme(theme);
+
+  // FIX BUG 2: applyTheme() solo llama a startMusicForTheme() cuando
+  // musicEnabled ya es true, pero en la primera selección musicEnabled=false,
+  // por lo que la música nunca arrancaba. Lo llamamos directamente aquí porque
+  // elegir el tema ES la interacción de usuario que desbloquea el autoplay.
+  startMusicForTheme(theme);
+
   const picker = document.getElementById('themePicker');
   picker.classList.add('overlay-hide');
   setTimeout(() => {
