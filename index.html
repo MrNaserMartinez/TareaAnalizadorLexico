@@ -8,9 +8,10 @@
 </head>
 <body data-theme="gon">
 
+  <!--efectos de paritculas-->
   <canvas id="auraCanvas" class="aura-canvas"></canvas>
 
-  <!--Inicio-->
+  <!--Bienvenida-->
   <div id="welcomeOverlay" class="overlay welcome-overlay">
     <div class="welcome-content">
       <img src="logo hunterxhunter.jpg" alt="Hunter x Hunter"
@@ -25,7 +26,7 @@
     </div>
   </div>
 
-  <!--seleccion para el tema -->
+  <!-- Selector de tema -->
   <div id="themePicker" class="overlay theme-picker" style="display:none">
     <div class="theme-picker-content">
       <h2 class="theme-picker-title">Elige</h2>
@@ -67,11 +68,12 @@
     </div>
   </div>
 
-  <!--Inicio-->
+  <!--operaciones-->
   <div class="container" style="opacity:0; pointer-events:none">
 
     <header class="page-header">
       <div class="page-header-row">
+        <!-- Imagen del personaje activo (cambia con el tema) -->
         <div class="header-char-portrait">
           <img src="gonFrec.jpg"    alt="Gon"    class="char-portrait char-portrait-gon"
                onerror="this.style.display='none'">
@@ -98,7 +100,6 @@
     </header>
 
     <div class="two-col">
-
       <section class="panel">
         <div class="panel-header">
           <h2>Código Fuente NenScript</h2>
@@ -140,7 +141,7 @@ ko"></textarea>
 
     </div>
 
-    <!-- codigo arbol sintactico -->
+    <!-- Árbol sintáctico -->
     <section class="panel" id="parseTreePanel" style="display:none">
       <div class="panel-header tree-header">
         <div class="tree-header-left">
@@ -175,7 +176,7 @@ ko"></textarea>
       </div>
     </section>
 
-    <!--las tablas símbolos y errores -->
+    <!-- Tabla de siembolos y errores -->
     <div id="tablesRow" class="tables-row-wrapper" style="display:none">
 
       <section class="panel">
@@ -253,7 +254,7 @@ ko"></textarea>
 
   </div>
 
-  <!--Mensaje de exito -->
+  <!--Efecto cuando se compila bien -->
   <div id="resultFlash" class="result-flash" style="display:none">
     <div class="result-flash-bg"></div>
     <div class="result-flash-content">
@@ -267,7 +268,7 @@ ko"></textarea>
   <audio id="audioGon"    src="gon.mp3"    loop preload="none"></audio>
   <audio id="audioKillua" src="killua.mp3" loop preload="none"></audio>
 
-  <!--Menu de musica -->
+  <!--Menu de musica-->
   <div id="musicPlayer" class="music-player" style="display:none">
     <div class="music-player-art" id="musicArt">G</div>
     <div class="music-player-info">
@@ -289,6 +290,5 @@ ko"></textarea>
   <script src="js/app.js"></script>
 </body>
 </html>
-="js/app.js"></script>
 </body>
 </html>

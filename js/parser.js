@@ -1,11 +1,10 @@
-// parser.js — Analizador Sintáctico para NenScript
+// parser.js
 function analyzeParser(tokens) {
   // Filtrar tokens que el parser no debe ver: Error y Especial (easter egg)
   const stream = tokens.filter(t => t.type !== 'Error' && t.type !== 'Especial');
   const errors = [];
   let pos = 0;
 
-  // ── Helpers de cursor ──────────────────────────────────────────────────
   const peek    = (off = 0) => stream[pos + off];
   const isEnd   = () => pos >= stream.length;
   const advance = () => stream[pos++];
@@ -45,7 +44,6 @@ function analyzeParser(tokens) {
     });
   }
 
-  // Recuperación en modo pánico: avanza hasta ';' o 'ko' o un keyword de bloque
   function syncToStatementBoundary() {
     while (!isEnd()) {
       const tok = peek();
@@ -60,7 +58,7 @@ function analyzeParser(tokens) {
     }
   }
 
-  // ── Constructores de nodos ─────────────────────────────────────────────
+  // Constructores de nodos
   const node = (label, children = [], extra = {}) => ({ label, children, ...extra });
   const leaf = (label, tok) => ({
     label,
@@ -68,9 +66,8 @@ function analyzeParser(tokens) {
     token: tok ? { value: tok.value, line: tok.line, column: tok.column, type: tok.type } : undefined,
   });
 
-  // ── Reglas gramaticales ────────────────────────────────────────────────
+  //Reglas gramaticales
 
-  // programa ::= "nen" IDENT ":" lista_inst "ko"
   function parsePrograma() {
     const root = node('programa');
     const nenTok = expect('Palabra_Reservada', 'nen', "Todo programa debe iniciar con 'nen'");
@@ -172,7 +169,6 @@ function analyzeParser(tokens) {
     }
   }
 
-  // declaracion ::= tipo IDENT [":=" expresion]    + ";"
   function parseDeclaracionInst() {
     const decl = node('declaracion');
     const tipoTok = advance(); // gon|killua|kurapika|leorio
@@ -191,7 +187,6 @@ function analyzeParser(tokens) {
     return decl;
   }
 
-  // declaracion_const ::= "yorknew" tipo IDENT ":=" expresion + ";"
   function parseDeclaracionConstInst() {
     const decl = node('declaracion_const');
     const yorkTok = advance(); // yorknew
@@ -335,7 +330,6 @@ function analyzeParser(tokens) {
     return cond;
   }
 
-  // ten expr : lista_inst ko
   function parseCicloWhile() {
     const cw = node('ciclo_while');
     const kw = advance();
@@ -431,7 +425,6 @@ function analyzeParser(tokens) {
     return par;
   }
 
-  // ── Expresiones (precedencia ascendente) ───────────────────────────────
 
   function parseExpresion() {
     return parseExprLogica();

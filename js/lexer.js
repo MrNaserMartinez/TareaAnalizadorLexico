@@ -82,7 +82,6 @@ function inferirTipo(tokens, idx) {
   }
 
   // Declaración explícita: gon x, killua y, kurapika z, leorio w
-  // (case-sensitive: solo coincide la forma exacta en minúsculas)
   if (prev && prev.type === 'Palabra_Reservada') {
     if (prev.value === 'gon')      return 'gon (entero)';
     if (prev.value === 'killua')   return 'killua (decimal)';
@@ -182,13 +181,11 @@ function analyzeLexer(source) {
       let word = '';
       while (i < source.length && isAlnum(source[i])) { word += source[i]; advance(); }
 
-      // Easter egg: DraSheyla
       if (word === 'DraSheyla') {
         tokens.push({ type: 'Especial', value: word, line: tokLine, column: tokCol });
         continue;
       }
 
-      // CASE-SENSITIVE: solo coincide si está exactamente en minúsculas
       if (PALABRAS_RESERVADAS.has(word)) {
         if (word === 'verdad' || word === 'falso') {
           tokens.push({ type: 'Booleano', value: word, line: tokLine, column: tokCol });
@@ -197,8 +194,6 @@ function analyzeLexer(source) {
         }
         continue;
       }
-
-      // Detección de palabra reservada mal escrita (mayúsculas / mixto)
       if (PALABRAS_RESERVADAS.has(word.toLowerCase())) {
         tokens.push({ type: 'Error', value: word, line: tokLine, column: tokCol, errorKey: 'RESERVADA_MAL' });
         continue;
@@ -213,12 +208,11 @@ function analyzeLexer(source) {
       continue;
     }
 
-    // Números: enteros y decimales
     if (isDigit(ch)) {
       let num = '';
       while (i < source.length && isDigit(source[i])) { num += source[i]; advance(); }
 
-      // Decimal
+
       if (source[i] === '.' && isDigit(source[i+1])) {
         num += source[i]; advance(); // consume el punto
         while (i < source.length && isDigit(source[i])) { num += source[i]; advance(); }
@@ -235,7 +229,6 @@ function analyzeLexer(source) {
       continue;
     }
 
-    // Operadores de 2 caracteres (>=, <=, ==, !=, :=, &&, ||)
     const two = source[i] + (source[i+1] || '');
     if (OPERADORES_DOBLES.has(two)) {
       if (two === ':=') {
