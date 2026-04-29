@@ -20,7 +20,6 @@
   --warn:        #b45309;
   --ok:          #047857;
 
-  /* tokens NenScript */
   --token-kw:      #4f46e5;
   --token-id:      #065f46;
   --token-num:     #92400e;
@@ -123,6 +122,35 @@ textarea:focus { background: #fff; }
 .btn-danger:hover { background: var(--danger); color: #fff; }
 .btn-ghost     { background: transparent; color: var(--ghost); border-color: var(--border); }
 .btn-ghost:hover { background: #f3f4f6; }
+
+/* Botón "Ver Árbol" — verde llamativo */
+.btn-tree {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border-color: #059669;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(16,185,129,.30);
+}
+.btn-tree:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  box-shadow: 0 3px 10px rgba(16,185,129,.45);
+  transform: translateY(-1px);
+}
+.btn-tree:disabled {
+  background: #d1d5db; color: #6b7280; border-color: #d1d5db;
+  cursor: not-allowed; box-shadow: none; transform: none;
+}
+
+/* Botón toggle (segmentado) para vista gráfica/texto */
+.btn-toggle {
+  background: #fff; color: var(--text-mid); border-color: var(--border);
+  font-size: 0.75rem; padding: 4px 10px;
+}
+.btn-toggle:hover { background: #f3f4f6; color: var(--text); }
+.btn-toggle.btn-toggle-active {
+  background: var(--primary); color: #fff; border-color: var(--primary);
+}
+
 .badge {
   background: var(--danger); color: #fff;
   border-radius: 99px; font-size: 0.68rem; font-weight: 700;
@@ -130,7 +158,7 @@ textarea:focus { background: #fff; }
 }
 .btn-danger:hover .badge { background: #fff; color: var(--danger); }
 
-/* ── Resultados ───────────────────────────────────────────── */
+/* ── Resultados / Tokens ─────────────────────────────────── */
 .results-area { flex: 1; overflow-y: auto; max-height: 340px; padding: 8px; }
 .empty-msg { color: var(--text-light); font-size: 0.8rem; text-align: center; padding: 40px 0; }
 
@@ -219,47 +247,134 @@ code { font-family: monospace; font-size: 0.82rem; color: var(--text); }
 #errorTablePanel  .panel-header { border-top: 3px solid var(--danger); }
 #syntaxErrorPanel .panel-header { border-top: 3px solid var(--warn);   }
 
-/* ── Árbol de Derivación ──────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════ */
+/*  ÁRBOL DE DERIVACIÓN  — Panel + Vista Gráfica + Vista Texto */
+/* ════════════════════════════════════════════════════════════ */
+
+#parseTreePanel .panel-header { border-top: 3px solid var(--accent); }
+
+.tree-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 10px 14px;
+}
+.tree-header-left  { display: flex; align-items: center; gap: 10px; }
+.tree-header-right { display: flex; align-items: center; gap: 8px; }
+
+.tree-toolbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  background: #fafafa; flex-wrap: wrap;
+}
+.tree-toolbar-label {
+  font-size: 0.72rem; font-weight: 600; color: var(--text-mid);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.tree-toolbar-hint {
+  margin-left: auto;
+  font-size: 0.7rem; color: var(--text-light); font-style: italic;
+}
+
 .tree-container {
-  padding: 16px 20px;
+  overflow: auto;
+  background: linear-gradient(180deg, #fdfcff, #f5f3ff);
+  padding: 16px;
+  min-height: 200px;
+  max-height: 700px;
+}
+
+/* ── Vista GRÁFICA (SVG) ────────────────────────────────── */
+.tree-container.tree-graphical {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.parse-tree-svg {
+  display: block;
+  background: transparent;
+}
+/* Líneas que conectan nodos */
+.parse-tree-svg .tree-edge {
+  stroke: #a78bfa;
+  stroke-width: 1.4;
+  fill: none;
+}
+/* Cajas de nodos */
+.parse-tree-svg .tree-rect {
+  stroke-width: 1.2;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.06));
+  cursor: default;
+  transition: filter 0.2s;
+}
+.parse-tree-svg .tree-rect:hover {
+  filter: drop-shadow(0 2px 6px rgba(124,58,237,0.30));
+}
+.parse-tree-svg .tree-rect-nonterminal {
+  fill: #ede9fe;
+  stroke: #a78bfa;
+}
+.parse-tree-svg .tree-rect-terminal {
+  fill: #fffbeb;
+  stroke: #fbbf24;
+}
+/* Texto dentro de cada nodo */
+.parse-tree-svg .tree-text {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 11.5px;
+  pointer-events: none;
+  user-select: none;
+}
+.parse-tree-svg .tree-text-nonterminal {
+  fill: #5b21b6;
+  font-weight: 600;
+  font-style: italic;
+}
+.parse-tree-svg .tree-text-terminal {
+  fill: #92400e;
+  font-weight: 600;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 11px;
+}
+
+/* ── Vista de TEXTO (jerárquica) ──────────────────────── */
+.tree-container.tree-textual {
   font-family: 'Consolas', 'Courier New', monospace;
   font-size: 0.82rem;
-  overflow-x: auto;
   background: #fafafa;
+  display: block;
 }
-.tree-node      { display: block; margin: 2px 0; }
-.tree-children  {
+.tree-text-view .tree-node { display: block; margin: 2px 0; }
+.tree-text-view .tree-children {
   list-style: none;
   margin-left: 18px;
   padding-left: 14px;
   border-left: 1px dashed #c4b5fd;
 }
-.tree-children li { position: relative; padding: 2px 0 2px 12px; }
-.tree-children li::before {
+.tree-text-view .tree-children li { position: relative; padding: 2px 0 2px 12px; }
+.tree-text-view .tree-children li::before {
   content: '└─';
   position: absolute;
   left: -2px;
   color: #c4b5fd;
   font-family: 'Consolas', monospace;
 }
-.tree-label {
+.tree-text-view .tree-label {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 4px;
   font-weight: 500;
 }
-.tree-nonterminal {
+.tree-text-view .tree-nonterminal {
   color: var(--primary);
   background: #ede9fe;
   border: 1px solid #c4b5fd;
 }
-.tree-terminal {
+.tree-text-view .tree-terminal {
   color: var(--token-num);
   background: #fffbeb;
   border: 1px solid #fde68a;
   font-family: 'Consolas', monospace;
 }
-.tree-loc {
+.tree-text-view .tree-loc {
   font-size: 0.7rem;
   color: var(--text-light);
   font-weight: 400;

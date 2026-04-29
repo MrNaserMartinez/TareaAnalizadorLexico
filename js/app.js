@@ -570,7 +570,6 @@ nen HunterExam:
         shu( i ) ;
     ko
 
-    
 ko`;
   analyze();
 }
