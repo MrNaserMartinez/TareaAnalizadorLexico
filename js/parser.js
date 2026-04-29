@@ -1,8 +1,4 @@
-// parser.js — Analizador Sintáctico de NenScript (descenso recursivo)
-// Consume los tokens producidos por el lexer y construye un árbol de derivación.
-// Reporta errores sintácticos con línea y columna, y aplica recuperación
-// en modo pánico hasta el siguiente ';' o 'ko' para seguir parseando.
-
+// parser.js — Analizador Sintáctico para NenScript
 function analyzeParser(tokens) {
   // Filtrar tokens que el parser no debe ver: Error y Especial (easter egg)
   const stream = tokens.filter(t => t.type !== 'Error' && t.type !== 'Especial');

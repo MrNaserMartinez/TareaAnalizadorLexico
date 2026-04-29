@@ -1,5 +1,4 @@
-// app.js — Lógica de UI para NenScript (Léxico + Sintáctico)
-
+//app.js
 const TYPE_INFO = {
   'Palabra_Reservada':   { label: 'P. Reservada',      css: 'kw'      },
   'Identificador':       { label: 'Identificador',     css: 'id'      },
@@ -125,7 +124,7 @@ function renderErrorTable(errorTable) {
   });
 }
 
-// ── Render Tabla de Errores Sintácticos ───────────────────────────────
+// ── Render Tabla de Errores Sintácticos ───────────────────────────────────
 function renderSyntaxErrors(errors) {
   const panel = document.getElementById('syntaxErrorPanel');
   const tbody = document.getElementById('syntaxErrorBody');
@@ -154,9 +153,7 @@ function renderSyntaxErrors(errors) {
   });
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// ÁRBOL DE DERIVACIÓN — Vista gráfica (SVG interactivo) y vista de texto
-// ════════════════════════════════════════════════════════════════════════
+//arbol de derivacion
 
 function isTerminal(node) {
   return !node.children || node.children.length === 0;
@@ -185,7 +182,6 @@ function graphicalLabel(node) {
   return `<${label}>`;
 }
 
-// Considera el estado _collapsed: si el nodo está colapsado, sus hijos no se cuentan
 function isEffectivelyTerminal(node) {
   return isTerminal(node) || node._collapsed;
 }
@@ -263,12 +259,10 @@ function buildTreeSVG(tree) {
   const px = (x) => padding + x * slotW;
   const py = (d) => padding + d * levelH + nodeH / 2;
 
-  // Capa de líneas (edges)
   const edgesGroup = document.createElementNS(svgNS, 'g');
   edgesGroup.setAttribute('class', 'tree-edges');
   svg.appendChild(edgesGroup);
 
-  // Capa de nodos
   const nodesGroup = document.createElementNS(svgNS, 'g');
   nodesGroup.setAttribute('class', 'tree-nodes');
   svg.appendChild(nodesGroup);
@@ -294,7 +288,6 @@ function buildTreeSVG(tree) {
     }
   }
 
-  // Dibujar nodos
   for (const n of visibleNodes) {
     const cx = px(n._x);
     const cy = py(n._d);
@@ -343,7 +336,6 @@ function buildTreeSVG(tree) {
 
     g.appendChild(text);
 
-    // Click handler para colapsar/expandir
     if (clickable) {
       g.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -358,7 +350,7 @@ function buildTreeSVG(tree) {
   return svg;
 }
 
-// ── Zoom / Pan / Reset ────────────────────────────────────────────────
+// zoom y pan del SVG
 function applyViewBox() {
   const svg = document.querySelector('.parse-tree-svg');
   if (!svg) return;
@@ -372,11 +364,9 @@ function applyViewBox() {
 }
 
 function zoomBy(factor, anchorX, anchorY) {
-  // anchorX/Y en coordenadas relativas (0..1) del SVG
   const newW = zoomState.vw * factor;
   const newH = zoomState.vh * factor;
 
-  // Mantener el punto bajo el cursor estable
   if (anchorX !== undefined && anchorY !== undefined) {
     zoomState.vx += (zoomState.vw - newW) * anchorX;
     zoomState.vy += (zoomState.vh - newH) * anchorY;
@@ -411,7 +401,6 @@ function expandAll() {
 function attachSvgInteractivity(svg) {
   if (!svg) return;
 
-  // Wheel zoom
   svg.addEventListener('wheel', (e) => {
     e.preventDefault();
     const rect = svg.getBoundingClientRect();
@@ -421,7 +410,6 @@ function attachSvgInteractivity(svg) {
     zoomBy(factor, ax, ay);
   }, { passive: false });
 
-  // Drag pan
   let panning = false;
   let panStart = null;
   svg.addEventListener('mousedown', (e) => {
@@ -484,7 +472,7 @@ function buildTextNode(node) {
   return wrapper;
 }
 
-// Renderiza el árbol según el modo activo
+// Render de arbol grafico o textual
 function renderParseTreeContent() {
   const container = document.getElementById('parseTreeContainer');
   const toolbar2  = document.getElementById('treeToolbar2');
@@ -560,7 +548,7 @@ function setupTreeAvailability(tree, hasErrors) {
   status.className   = 'count-label ' + (hasErrors ? 'count-warn' : 'count-ok');
 }
 
-// ── Botones / control general ─────────────────────────────────────────
+//botones de errores
 function updateErrorButton(errorTable, syntaxErrors) {
   const btn   = document.getElementById('btnErrors');
   const badge = document.getElementById('btnErrorBadge');
@@ -704,9 +692,7 @@ ko`;
   analyze();
 }
 
-// ════════════════════════════════════════════════════════════
-//  PANTALLA DE BIENVENIDA + SELECTOR DE TEMA (Gon / Killua)
-// ════════════════════════════════════════════════════════════
+// Bienvida y selector de temas
 
 // Bienvenida → selector de tema
 function enterCompiler() {
@@ -720,12 +706,10 @@ function enterCompiler() {
 
   setTimeout(() => {
     welcome.style.display = 'none';
-    // Mostrar selector con fade-in
     picker.style.display   = 'flex';
     picker.style.opacity   = '0';
     picker.style.transition = 'opacity 0.35s ease';
-    // Forzar reflow para que la transición se dispare
-    picker.offsetHeight; // eslint-disable-line no-unused-expressions
+    picker.offsetHeight; 
     picker.style.opacity = '1';
   }, 360);
 }
@@ -733,11 +717,6 @@ function enterCompiler() {
 // Aplicar tema y cerrar el selector
 function chooseTheme(theme) {
   applyTheme(theme);
-
-  // FIX BUG 2: applyTheme() solo llama a startMusicForTheme() cuando
-  // musicEnabled ya es true, pero en la primera selección musicEnabled=false,
-  // por lo que la música nunca arrancaba. Lo llamamos directamente aquí porque
-  // elegir el tema ES la interacción de usuario que desbloquea el autoplay.
   startMusicForTheme(theme);
 
   const picker    = document.getElementById('themePicker');
@@ -765,10 +744,7 @@ function toggleTheme() {
 }
 
 function applyTheme(theme) {
-  document.body.setAttribute('data-theme', theme);
-  // Persistir preferencia (sobrevive recargas, no afecta el flujo de bienvenida)
   try { localStorage.setItem('nenscript-theme', theme); } catch (e) { /* ignore */ }
-  // Re-renderizar el árbol gráfico para que los colores SVG se actualicen
   if (lastParseTree && document.getElementById('parseTreeBody').style.display === 'block') {
     renderParseTreeContent();
   }
@@ -777,9 +753,8 @@ function applyTheme(theme) {
   updateMusicPlayerUI();
 }
 
-// ════════════════════════════════════════════════════════════
-//  REPRODUCTOR DE MÚSICA POR TEMA (Gon / Killua)
-// ════════════════════════════════════════════════════════════
+
+//  Manejo de la música: play/pause, volumen, mute, persistencia de preferencias, etc.
 
 let currentAudio = null;
 let audioVolume  = 0.5;     // 0..1
@@ -806,10 +781,7 @@ function startMusicForTheme(theme) {
   const next = _audioFor(theme);
   if (!next) return;
 
-  // Si ya estaba sonando este mismo audio, no reiniciar
   if (currentAudio === next && !next.paused) { updateMusicPlayerUI(); return; }
-
-  // Fade out del audio anterior
   if (currentAudio && currentAudio !== next) {
     const old = currentAudio;
     _fade(old, old.volume, 0, 500, () => { old.pause(); old.currentTime = 0; });
@@ -821,7 +793,6 @@ function startMusicForTheme(theme) {
   const playPromise = next.play();
   if (playPromise && playPromise.catch) {
     playPromise.catch((err) => {
-      // Autoplay bloqueado o archivo no disponible — el usuario puede usar play manual
       console.warn('[NenScript] No se pudo reproducir música automáticamente:', err);
     });
   }
@@ -910,20 +881,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sourceCode').addEventListener('keydown', e => {
     if (e.ctrlKey && e.key === 'Enter') analyze();
   });
-  // Restaurar tema persistido
   try {
     const saved = localStorage.getItem('nenscript-theme');
     if (saved === 'gon' || saved === 'killua') {
       document.body.setAttribute('data-theme', saved);
     }
   } catch (e) { /* ignore */ }
-  // Restaurar volumen y estado mute persistidos
   restoreAudioPrefs();
 });
 
-// ════════════════════════════════════════════════════════════
-//  1. PARTÍCULAS DE AURA (Canvas animado en el fondo)
-// ════════════════════════════════════════════════════════════
+//efecto particulas de aura
 
 (function initAuraParticles() {
   const canvas = document.getElementById('auraCanvas');
@@ -942,8 +909,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function getThemeColors() {
     const theme = document.body.getAttribute('data-theme') || 'gon';
     return theme === 'killua'
-      ? ['167,139,250', '196,181,253', '124,58,237']  // morados
-      : ['74,222,128',  '163,230,53',  '34,197,94'];  // verdes
+      ? ['167,139,250', '196,181,253', '124,58,237']  
+      : ['74,222,128',  '163,230,53',  '34,197,94'];  
   }
 
   class Particle {
@@ -969,7 +936,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (this.y < -8 || this.life >= this.maxLife) this.init(false);
     }
     draw() {
-      // Fade in y fade out suave
       const t    = this.life / this.maxLife;
       const fade = t < 0.12 ? t / 0.12 : t > 0.82 ? (1 - t) / 0.18 : 1;
       ctx.save();
@@ -986,10 +952,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   for (let i = 0; i < COUNT; i++) particles.push(new Particle(true));
-
-  // Cuando cambia el tema las partículas adoptan los nuevos colores
-  // automáticamente porque getThemeColors() se llama en cada init()
-
   function loop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (const p of particles) { p.update(); p.draw(); }
@@ -999,9 +961,7 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 
 
-// ════════════════════════════════════════════════════════════
-//  6. RESULTADO DRAMÁTICO (flash de éxito / error al analizar)
-// ════════════════════════════════════════════════════════════
+//  Mensaje de exito
 
 let _flashTimer = null;
 
