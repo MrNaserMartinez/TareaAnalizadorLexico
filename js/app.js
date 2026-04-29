@@ -704,8 +704,58 @@ ko`;
   analyze();
 }
 
+// ════════════════════════════════════════════════════════════
+//  PANTALLA DE BIENVENIDA + SELECTOR DE TEMA (Gon / Killua)
+// ════════════════════════════════════════════════════════════
+
+// Bienvenida → selector de tema
+function enterCompiler() {
+  const welcome = document.getElementById('welcomeOverlay');
+  welcome.classList.add('overlay-hide');
+  setTimeout(() => {
+    welcome.style.display = 'none';
+    const picker = document.getElementById('themePicker');
+    picker.style.display = 'flex';
+    picker.classList.remove('overlay-hide');
+  }, 380);
+}
+
+// Aplicar tema y cerrar el selector
+function chooseTheme(theme) {
+  applyTheme(theme);
+  const picker = document.getElementById('themePicker');
+  picker.classList.add('overlay-hide');
+  setTimeout(() => {
+    picker.style.display = 'none';
+  }, 380);
+}
+
+// Toggle Gon ↔ Killua (botón en cabecera)
+function toggleTheme() {
+  const current = document.body.getAttribute('data-theme') || 'gon';
+  applyTheme(current === 'gon' ? 'killua' : 'gon');
+}
+
+function applyTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
+  // Persistir preferencia (sobrevive recargas, no afecta el flujo de bienvenida)
+  try { localStorage.setItem('nenscript-theme', theme); } catch (e) { /* ignore */ }
+  // Re-renderizar el árbol gráfico para que los colores SVG se actualicen
+  if (lastParseTree && document.getElementById('parseTreeBody').style.display === 'block') {
+    renderParseTreeContent();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sourceCode').addEventListener('keydown', e => {
     if (e.ctrlKey && e.key === 'Enter') analyze();
   });
+  // Restaurar tema persistido (la bienvenida siempre se muestra, pero si ya
+  // habían elegido un tema antes el toggle arranca en la posición correcta)
+  try {
+    const saved = localStorage.getItem('nenscript-theme');
+    if (saved === 'gon' || saved === 'killua') {
+      document.body.setAttribute('data-theme', saved);
+    }
+  } catch (e) { /* ignore */ }
 });

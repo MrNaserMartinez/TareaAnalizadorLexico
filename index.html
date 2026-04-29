@@ -6,13 +6,80 @@
   <title>NenScript — Analizador Léxico y Sintáctico</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
+<body data-theme="gon">
 
+  <!-- ════════════ Pantalla de Bienvenida ════════════ -->
+  <div id="welcomeOverlay" class="overlay welcome-overlay">
+    <div class="welcome-content">
+      <!--
+        Reemplazá la siguiente imagen por tu logo de Hunter x Hunter.
+        Colocá el archivo en images/hxh-logo.png (crea la carpeta images
+        a la altura de index.html).
+      -->
+      <img src="images/hxh-logo.png" alt="Hunter x Hunter"
+           class="welcome-logo"
+           onerror="this.classList.add('welcome-logo-missing'); this.alt='Coloca tu logo en images/hxh-logo.png'">
+      <h1 class="welcome-title">Nen<span>Script</span></h1>
+      <p class="welcome-tagline">Mini-compilador inspirado en Hunter × Hunter</p>
+      <button class="btn-welcome" onclick="enterCompiler()">
+        Empezar compilador de NenScript
+      </button>
+      <p class="welcome-credits">Universidad Mariano Gálvez — Campus Jutiapa 2026</p>
+    </div>
+  </div>
+
+  <!-- ════════════ Selector de Tema (Gon / Killua) ════════════ -->
+  <div id="themePicker" class="overlay theme-picker" style="display:none">
+    <div class="theme-picker-content">
+      <h2 class="theme-picker-title">Elige</h2>
+      <p class="theme-picker-subtitle">¿Con qué cazador querés compilar hoy?</p>
+
+      <div class="theme-cards">
+        <button class="theme-card theme-card-gon" onclick="chooseTheme('gon')">
+          <span class="theme-card-emblem">G</span>
+          <span class="theme-card-name">Gon</span>
+          <span class="theme-card-tag">Tema verde</span>
+          <span class="theme-card-swatches">
+            <span style="background:#16a34a"></span>
+            <span style="background:#65a30d"></span>
+            <span style="background:#bbf7d0"></span>
+          </span>
+        </button>
+
+        <button class="theme-card theme-card-killua" onclick="chooseTheme('killua')">
+          <span class="theme-card-emblem">K</span>
+          <span class="theme-card-name">Killua</span>
+          <span class="theme-card-tag">Tema blanco / morado</span>
+          <span class="theme-card-swatches">
+            <span style="background:#7c3aed"></span>
+            <span style="background:#a78bfa"></span>
+            <span style="background:#f5f3ff"></span>
+          </span>
+        </button>
+      </div>
+
+      <p class="theme-picker-hint">Puedes cambiar el diseño luego con el botón en la cabecera</p>
+    </div>
+  </div>
+
+  <!-- ════════════ Aplicación principal ════════════ -->
   <div class="container">
 
     <header class="page-header">
-      <h1>Nen<span>Script</span> — Analizador Léxico y Sintáctico</h1>
-      <p>Compiladores &mdash; Universidad Mariano Gálvez de Guatemala &mdash; Campus Jutiapa 2026</p>
+      <div class="page-header-row">
+        <div>
+          <h1>Nen<span>Script</span> — Analizador Léxico y Sintáctico</h1>
+          <p>Compiladores &mdash; Universidad Mariano Gálvez de Guatemala &mdash; Campus Jutiapa 2026</p>
+        </div>
+        <!-- Toggle de tema Gon ↔ Killua estilo claro/oscuro -->
+        <div class="theme-toggle-wrap">
+          <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">
+            <span class="theme-toggle-side theme-toggle-gon">Gon</span>
+            <span class="theme-toggle-side theme-toggle-killua">Killua</span>
+            <span class="theme-toggle-thumb"></span>
+          </button>
+        </div>
+      </div>
       <div class="header-tags">
         <span class="htag htag-purple">Lenguaje temático: Hunter x Hunter</span>
         <span class="htag htag-teal">Herramienta: JavaScript vanilla</span>
@@ -64,7 +131,7 @@ ko"></textarea>
 
     </div>
 
-    <!-- Árbol sintáctico (colapsado por defecto) -->
+    <!-- Árbol sintáctico -->
     <section class="panel" id="parseTreePanel" style="display:none">
       <div class="panel-header tree-header">
         <div class="tree-header-left">
@@ -99,7 +166,7 @@ ko"></textarea>
       </div>
     </section>
 
-    <!-- Tablas: símbolos + errores léxicos + errores sintácticos -->
+    <!-- Tablas: símbolos + errores -->
     <div id="tablesRow" class="tables-row-wrapper" style="display:none">
 
       <section class="panel">
