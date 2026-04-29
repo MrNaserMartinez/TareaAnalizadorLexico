@@ -744,18 +744,151 @@ function applyTheme(theme) {
   if (lastParseTree && document.getElementById('parseTreeBody').style.display === 'block') {
     renderParseTreeContent();
   }
+  // Cambiar la canción al tema activo (si la música ya está habilitada)
+  if (musicEnabled) startMusicForTheme(theme);
+  updateMusicPlayerUI();
+}
+
+// ════════════════════════════════════════════════════════════
+//  REPRODUCTOR DE MÚSICA POR TEMA (Gon / Killua)
+// ════════════════════════════════════════════════════════════
+
+let currentAudio = null;
+let audioVolume  = 0.5;     // 0..1
+let isMuted      = false;
+let musicEnabled = false;   // se activa al elegir tema (interacción del usuario)
+
+function _audioFor(theme) {
+  return document.getElementById(theme === 'killua' ? 'audioKillua' : 'audioGon');
+}
+
+function _fade(audio, fromV, toV, ms = 600, onDone) {
+  const start = performance.now();
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / ms);
+    audio.volume = fromV + (toV - fromV) * t;
+    if (t < 1) requestAnimationFrame(step);
+    else if (onDone) onDone();
+  };
+  audio.volume = fromV;
+  requestAnimationFrame(step);
+}
+
+function startMusicForTheme(theme) {
+  const next = _audioFor(theme);
+  if (!next) return;
+
+  // Si ya estaba sonando este mismo audio, no reiniciar
+  if (currentAudio === next && !next.paused) { updateMusicPlayerUI(); return; }
+
+  // Fade out del audio anterior
+  if (currentAudio && currentAudio !== next) {
+    const old = currentAudio;
+    _fade(old, old.volume, 0, 500, () => { old.pause(); old.currentTime = 0; });
+  }
+
+  currentAudio = next;
+  next.muted   = isMuted;
+  next.volume  = 0;
+  const playPromise = next.play();
+  if (playPromise && playPromise.catch) {
+    playPromise.catch((err) => {
+      // Autoplay bloqueado o archivo no disponible — el usuario puede usar play manual
+      console.warn('[NenScript] No se pudo reproducir música automáticamente:', err);
+    });
+  }
+  _fade(next, 0, isMuted ? 0 : audioVolume, 700);
+
+  musicEnabled = true;
+  showMusicPlayer();
+  updateMusicPlayerUI();
+}
+
+function toggleMusic() {
+  if (!currentAudio) return;
+  const btn = document.getElementById('btnMusicToggle');
+  if (currentAudio.paused) {
+    currentAudio.play().catch(() => {});
+    btn.textContent = '⏸';
+  } else {
+    currentAudio.pause();
+    btn.textContent = '▶';
+  }
+  updateMusicPlayerUI();
+}
+
+function volUp() {
+  audioVolume = Math.min(1, +(audioVolume + 0.10).toFixed(2));
+  if (isMuted) muteMusic(); // si estaba muteado y suben, des-mutea
+  if (currentAudio && !isMuted) currentAudio.volume = audioVolume;
+  saveAudioPrefs();
+  updateMusicPlayerUI();
+}
+
+function volDown() {
+  audioVolume = Math.max(0, +(audioVolume - 0.10).toFixed(2));
+  if (currentAudio && !isMuted) currentAudio.volume = audioVolume;
+  saveAudioPrefs();
+  updateMusicPlayerUI();
+}
+
+function muteMusic() {
+  isMuted = !isMuted;
+  if (currentAudio) currentAudio.volume = isMuted ? 0 : audioVolume;
+  document.getElementById('btnMute').textContent = isMuted ? '🔇' : '🔊';
+  document.getElementById('musicPlayer').classList.toggle('is-muted', isMuted);
+  saveAudioPrefs();
+  updateMusicPlayerUI();
+}
+
+function showMusicPlayer() {
+  document.getElementById('musicPlayer').style.display = 'flex';
+}
+
+function updateMusicPlayerUI() {
+  const player = document.getElementById('musicPlayer');
+  const art    = document.getElementById('musicArt');
+  const title  = document.getElementById('musicTitle');
+  const ind    = document.getElementById('volIndicator');
+  const btnT   = document.getElementById('btnMusicToggle');
+  if (!player) return;
+
+  const theme = document.body.getAttribute('data-theme') || 'gon';
+  art.textContent   = theme === 'killua' ? 'K' : 'G';
+  title.textContent = theme === 'killua' ? 'Tema Killua' : 'Tema Gon';
+  ind.textContent   = isMuted ? 'mute' : (Math.round(audioVolume * 100) + '%');
+
+  const playing = currentAudio && !currentAudio.paused && !isMuted;
+  art.classList.toggle('is-playing', !!playing);
+  if (btnT) btnT.textContent = (currentAudio && !currentAudio.paused) ? '⏸' : '▶';
+}
+
+function saveAudioPrefs() {
+  try {
+    localStorage.setItem('nenscript-volume', String(audioVolume));
+    localStorage.setItem('nenscript-muted', isMuted ? '1' : '0');
+  } catch (e) { /* ignore */ }
+}
+
+function restoreAudioPrefs() {
+  try {
+    const v = parseFloat(localStorage.getItem('nenscript-volume'));
+    if (!isNaN(v) && v >= 0 && v <= 1) audioVolume = v;
+    isMuted = localStorage.getItem('nenscript-muted') === '1';
+  } catch (e) { /* ignore */ }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sourceCode').addEventListener('keydown', e => {
     if (e.ctrlKey && e.key === 'Enter') analyze();
   });
-  // Restaurar tema persistido (la bienvenida siempre se muestra, pero si ya
-  // habían elegido un tema antes el toggle arranca en la posición correcta)
+  // Restaurar tema persistido
   try {
     const saved = localStorage.getItem('nenscript-theme');
     if (saved === 'gon' || saved === 'killua') {
       document.body.setAttribute('data-theme', saved);
     }
   } catch (e) { /* ignore */ }
+  // Restaurar volumen y estado mute persistidos
+  restoreAudioPrefs();
 });

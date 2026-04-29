@@ -11,6 +11,11 @@
   <!-- ════════════ Pantalla de Bienvenida ════════════ -->
   <div id="welcomeOverlay" class="overlay welcome-overlay">
     <div class="welcome-content">
+      <!--
+        Reemplazá la siguiente imagen por tu logo de Hunter x Hunter.
+        Colocá el archivo en images/hxh-logo.png (crea la carpeta images
+        a la altura de index.html).
+      -->
       <img src="logo hunterxhunter.jpg" alt="Hunter x Hunter"
            class="welcome-logo"
            onerror="this.classList.add('welcome-logo-missing'); this.alt='Coloca tu logo en images/hxh-logo.png'">
@@ -237,6 +242,32 @@ ko"></textarea>
       NenScript Compiler &mdash; Compiladores 2026 &mdash; UMG Campus Jutiapa
     </footer>
 
+  </div>
+
+  <!--
+    Reproductor de música flotante. Las canciones se cargan de:
+      audio/gon-theme.mp3
+      audio/killua-theme.mp3
+    Crea la carpeta audio/ a la altura de index.html y coloca esos archivos
+    (también acepta .ogg o .wav cambiando la extensión en los src de abajo).
+  -->
+  <audio id="audioGon"    src="gon.mp3"    loop preload="none"></audio>
+  <audio id="audioKillua" src="killua.mp3" loop preload="none"></audio>
+
+  <div id="musicPlayer" class="music-player" style="display:none">
+    <div class="music-player-art" id="musicArt">G</div>
+    <div class="music-player-info">
+      <div class="music-player-title" id="musicTitle">Tema Gon</div>
+      <div class="music-player-meta">
+        <button class="music-btn" onclick="volDown()" title="Bajar volumen">−</button>
+        <span id="volIndicator" class="vol-indicator">50%</span>
+        <button class="music-btn" onclick="volUp()" title="Subir volumen">+</button>
+      </div>
+    </div>
+    <div class="music-player-controls">
+      <button id="btnMusicToggle" class="music-btn music-btn-main" onclick="toggleMusic()" title="Pausar / Reanudar">⏸</button>
+      <button id="btnMute" class="music-btn music-btn-stop" onclick="muteMusic()" title="Quitar música">🔊</button>
+    </div>
   </div>
 
   <script src="js/lexer.js"></script>
