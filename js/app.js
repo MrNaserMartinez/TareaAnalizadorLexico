@@ -713,16 +713,21 @@ function enterCompiler() {
   const welcome = document.getElementById('welcomeOverlay');
   const picker  = document.getElementById('themePicker');
 
-  // FIX BUG 1: Mostramos el selector de tema ANTES de iniciar el fade del
-  // welcome, así queda debajo del overlay que se desvanece y el compilador
-  // nunca queda expuesto durante la transición.
-  picker.style.display = 'flex';
-  picker.classList.remove('overlay-hide');
+  // Fade-out del welcome con transición inline (no depende de clases CSS)
+  welcome.style.transition = 'opacity 0.35s ease';
+  welcome.style.opacity    = '0';
+  welcome.style.pointerEvents = 'none';
 
-  welcome.classList.add('overlay-hide');
   setTimeout(() => {
     welcome.style.display = 'none';
-  }, 380);
+    // Mostrar selector con fade-in
+    picker.style.display   = 'flex';
+    picker.style.opacity   = '0';
+    picker.style.transition = 'opacity 0.35s ease';
+    // Forzar reflow para que la transición se dispare
+    picker.offsetHeight; // eslint-disable-line no-unused-expressions
+    picker.style.opacity = '1';
+  }, 360);
 }
 
 // Aplicar tema y cerrar el selector
@@ -735,11 +740,22 @@ function chooseTheme(theme) {
   // elegir el tema ES la interacción de usuario que desbloquea el autoplay.
   startMusicForTheme(theme);
 
-  const picker = document.getElementById('themePicker');
-  picker.classList.add('overlay-hide');
+  const picker    = document.getElementById('themePicker');
+  const container = document.querySelector('.container');
+
+  picker.style.transition    = 'opacity 0.35s ease';
+  picker.style.opacity       = '0';
+  picker.style.pointerEvents = 'none';
+
   setTimeout(() => {
     picker.style.display = 'none';
-  }, 380);
+    // Revelar el compilador con fade-in
+    container.style.transition    = 'opacity 0.4s ease';
+    container.style.pointerEvents = '';
+    requestAnimationFrame(() => {
+      container.style.opacity = '1';
+    });
+  }, 360);
 }
 
 // Toggle Gon ↔ Killua (botón en cabecera)
@@ -904,3 +920,137 @@ document.addEventListener('DOMContentLoaded', () => {
   // Restaurar volumen y estado mute persistidos
   restoreAudioPrefs();
 });
+
+// ════════════════════════════════════════════════════════════
+//  1. PARTÍCULAS DE AURA (Canvas animado en el fondo)
+// ════════════════════════════════════════════════════════════
+
+(function initAuraParticles() {
+  const canvas = document.getElementById('auraCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  const COUNT = 55;
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function getThemeColors() {
+    const theme = document.body.getAttribute('data-theme') || 'gon';
+    return theme === 'killua'
+      ? ['167,139,250', '196,181,253', '124,58,237']  // morados
+      : ['74,222,128',  '163,230,53',  '34,197,94'];  // verdes
+  }
+
+  class Particle {
+    constructor(immediate) {
+      this.init(immediate);
+    }
+    init(immediate) {
+      const colors = getThemeColors();
+      this.color   = colors[Math.floor(Math.random() * colors.length)];
+      this.x       = Math.random() * canvas.width;
+      this.y       = immediate ? Math.random() * canvas.height : canvas.height + 10;
+      this.r       = Math.random() * 2.2 + 0.6;
+      this.vy      = -(Math.random() * 0.55 + 0.2);
+      this.vx      = (Math.random() - 0.5) * 0.35;
+      this.alpha   = Math.random() * 0.55 + 0.1;
+      this.life    = immediate ? Math.random() * 280 : 0;
+      this.maxLife = Math.random() * 260 + 120;
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.life++;
+      if (this.y < -8 || this.life >= this.maxLife) this.init(false);
+    }
+    draw() {
+      // Fade in y fade out suave
+      const t    = this.life / this.maxLife;
+      const fade = t < 0.12 ? t / 0.12 : t > 0.82 ? (1 - t) / 0.18 : 1;
+      ctx.save();
+      ctx.globalAlpha = this.alpha * fade;
+      // Glow suave
+      ctx.shadowColor  = `rgba(${this.color},0.9)`;
+      ctx.shadowBlur   = this.r * 3.5;
+      ctx.fillStyle    = `rgba(${this.color},1)`;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  for (let i = 0; i < COUNT; i++) particles.push(new Particle(true));
+
+  // Cuando cambia el tema las partículas adoptan los nuevos colores
+  // automáticamente porque getThemeColors() se llama en cada init()
+
+  function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const p of particles) { p.update(); p.draw(); }
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+
+
+// ════════════════════════════════════════════════════════════
+//  6. RESULTADO DRAMÁTICO (flash de éxito / error al analizar)
+// ════════════════════════════════════════════════════════════
+
+let _flashTimer = null;
+
+function showResultFlash(success, lexErrors, synErrors) {
+  const el  = document.getElementById('resultFlash');
+  const ico = document.getElementById('resultFlashIcon');
+  const msg = document.getElementById('resultFlashMsg');
+  const sub = document.getElementById('resultFlashSub');
+  if (!el) return;
+
+  // Cancelar flash anterior si todavía está activo
+  if (_flashTimer) { clearTimeout(_flashTimer); _flashTimer = null; }
+
+  const theme = document.body.getAttribute('data-theme') || 'gon';
+
+  if (success) {
+    ico.textContent = '✦';
+    msg.textContent = theme === 'killua' ? '¡Descarga eléctrica exitosa!' : '¡Aura purificada!';
+    sub.textContent = 'Sin errores léxicos ni sintácticos';
+    el.className = 'result-flash flash-success';
+  } else {
+    const total = (lexErrors || 0) + (synErrors || 0);
+    ico.textContent = '✗';
+    msg.textContent = 'Aura inestable';
+    sub.textContent = `${total} error${total !== 1 ? 'es' : ''} detectado${total !== 1 ? 's' : ''}`;
+    el.className = 'result-flash flash-error';
+  }
+
+  el.style.display = 'flex';
+  // Forzar reflow para que la transición arranque
+  void el.offsetWidth;
+  el.classList.add('flash-show');
+
+  _flashTimer = setTimeout(() => {
+    el.classList.remove('flash-show');
+    el.classList.add('flash-hide');
+    setTimeout(() => {
+      el.style.display = 'none';
+      el.className = 'result-flash';
+    }, 500);
+    _flashTimer = null;
+  }, 1900);
+}
+
+// Hook en la función analyze() existente — la parcheamos sin tocar el compilador
+const _originalAnalyze = analyze;
+window.analyze = function analyze() {
+  _originalAnalyze();
+  const lexErr = lastErrorTable   ? lastErrorTable.length   : 0;
+  const synErr = lastSyntaxErrors ? lastSyntaxErrors.length : 0;
+  showResultFlash(lexErr === 0 && synErr === 0, lexErr, synErr);
+};

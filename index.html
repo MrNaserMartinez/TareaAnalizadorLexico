@@ -8,17 +8,14 @@
 </head>
 <body data-theme="gon">
 
-  <!-- ════════════ Pantalla de Bienvenida ════════════ -->
+  <canvas id="auraCanvas" class="aura-canvas"></canvas>
+
+  <!--Inicio-->
   <div id="welcomeOverlay" class="overlay welcome-overlay">
     <div class="welcome-content">
-      <!--
-        Reemplazá la siguiente imagen por tu logo de Hunter x Hunter.
-        Colocá el archivo en images/hxh-logo.png (crea la carpeta images
-        a la altura de index.html).
-      -->
       <img src="logo hunterxhunter.jpg" alt="Hunter x Hunter"
            class="welcome-logo"
-           onerror="this.classList.add('welcome-logo-missing'); this.alt='Coloca tu logo en images/hxh-logo.png'">
+           onerror="this.classList.add('welcome-logo-missing'); this.alt='Coloca tu logo aquí'">
       <h1 class="welcome-title">Nen<span>Script</span></h1>
       <p class="welcome-tagline">Mini-compilador inspirado en Hunter × Hunter</p>
       <button class="btn-welcome" onclick="enterCompiler()">
@@ -28,7 +25,7 @@
     </div>
   </div>
 
-  <!-- ════════════ Selector de Tema (Gon / Killua) ════════════ -->
+  <!--seleccion para el tema -->
   <div id="themePicker" class="overlay theme-picker" style="display:none">
     <div class="theme-picker-content">
       <h2 class="theme-picker-title">Elige</h2>
@@ -70,12 +67,11 @@
     </div>
   </div>
 
-  <!--Aplicación-->
-  <div class="container">
+  <!--Inicio-->
+  <div class="container" style="opacity:0; pointer-events:none">
 
     <header class="page-header">
       <div class="page-header-row">
-        <!-- Imagen del personaje activo (cambia con el tema) -->
         <div class="header-char-portrait">
           <img src="gonFrec.jpg"    alt="Gon"    class="char-portrait char-portrait-gon"
                onerror="this.style.display='none'">
@@ -144,7 +140,7 @@ ko"></textarea>
 
     </div>
 
-    <!-- Árbol sintáctico -->
+    <!-- codigo arbol sintactico -->
     <section class="panel" id="parseTreePanel" style="display:none">
       <div class="panel-header tree-header">
         <div class="tree-header-left">
@@ -179,7 +175,7 @@ ko"></textarea>
       </div>
     </section>
 
-    <!-- Tablas: símbolos y errores -->
+    <!--las tablas símbolos y errores -->
     <div id="tablesRow" class="tables-row-wrapper" style="display:none">
 
       <section class="panel">
@@ -257,10 +253,21 @@ ko"></textarea>
 
   </div>
 
-  <!--manejo de audios  -->
+  <!--Mensaje de exito -->
+  <div id="resultFlash" class="result-flash" style="display:none">
+    <div class="result-flash-bg"></div>
+    <div class="result-flash-content">
+      <div class="result-flash-icon" id="resultFlashIcon">✦</div>
+      <div class="result-flash-msg"  id="resultFlashMsg">¡Aura purificada!</div>
+      <div class="result-flash-sub"  id="resultFlashSub">Sin errores léxicos ni sintácticos</div>
+    </div>
+  </div>
+
+  <!-- Audio -->
   <audio id="audioGon"    src="gon.mp3"    loop preload="none"></audio>
   <audio id="audioKillua" src="killua.mp3" loop preload="none"></audio>
 
+  <!--Menu de musica -->
   <div id="musicPlayer" class="music-player" style="display:none">
     <div class="music-player-art" id="musicArt">G</div>
     <div class="music-player-info">
@@ -273,12 +280,15 @@ ko"></textarea>
     </div>
     <div class="music-player-controls">
       <button id="btnMusicToggle" class="music-btn music-btn-main" onclick="toggleMusic()" title="Pausar / Reanudar">⏸</button>
-      <button id="btnMute" class="music-btn music-btn-stop" onclick="muteMusic()" title="Quitar música">🔊</button>
+      <button id="btnMute" class="music-btn music-btn-stop" onclick="muteMusic()" title="Silenciar">🔊</button>
     </div>
   </div>
 
   <script src="js/lexer.js"></script>
   <script src="js/parser.js"></script>
   <script src="js/app.js"></script>
+</body>
+</html>
+="js/app.js"></script>
 </body>
 </html>

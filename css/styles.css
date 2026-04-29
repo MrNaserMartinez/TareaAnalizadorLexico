@@ -101,7 +101,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.4s ease;
 }
 .overlay.overlay-hide { animation: fadeOut 0.4s ease forwards; }
 
@@ -930,3 +929,132 @@ body[data-theme="killua"] .music-player-art {
   }
   .music-player-info { display: none; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   PARTÍCULAS DE AURA (Canvas fijo, detrás de todo)
+   ════════════════════════════════════════════════════════════ */
+.aura-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.55;
+}
+/* El contenido principal queda sobre el canvas.
+   IMPORTANTE: .overlay y .music-player ya tienen position:fixed definido
+   arriba — no se toca su position para no romperlos.
+   Solo .container necesita position:relative para crear stacking context. */
+.container { position: relative; z-index: 1; }
+
+
+/* ════════════════════════════════════════════════════════════
+   RESULTADO DRAMÁTICO (flash de éxito / error)
+   ════════════════════════════════════════════════════════════ */
+.result-flash {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 99999;
+}
+.result-flash-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.result-flash.flash-show .result-flash-bg   { opacity: 1; }
+.result-flash.flash-hide .result-flash-bg   { opacity: 0; transition: opacity 0.6s ease; }
+
+/* Fondo por tipo */
+.result-flash.flash-success .result-flash-bg {
+  background: radial-gradient(ellipse at center,
+    rgba(34,197,94,0.22) 0%, rgba(34,197,94,0.06) 55%, transparent 75%);
+}
+.result-flash.flash-error .result-flash-bg {
+  background: radial-gradient(ellipse at center,
+    rgba(239,68,68,0.22) 0%, rgba(239,68,68,0.06) 55%, transparent 75%);
+}
+
+/* Tarjeta central */
+.result-flash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 52px;
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid transparent;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+  transform: scale(0.72) translateY(20px);
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(.34,1.56,.64,1),
+              opacity   0.30s ease;
+}
+.result-flash.flash-show .result-flash-content {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+.result-flash.flash-hide .result-flash-content {
+  transform: scale(0.88) translateY(-12px);
+  opacity: 0;
+  transition: transform 0.45s ease, opacity 0.45s ease;
+}
+
+.result-flash.flash-success .result-flash-content {
+  background: rgba(10, 24, 18, 0.82);
+  border-color: rgba(34,197,94,0.45);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.55), 0 0 40px rgba(34,197,94,0.25);
+}
+.result-flash.flash-error .result-flash-content {
+  background: rgba(18, 10, 10, 0.82);
+  border-color: rgba(239,68,68,0.45);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.55), 0 0 40px rgba(239,68,68,0.20);
+}
+
+.result-flash-icon {
+  font-size: 3.8rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 14px currentColor);
+  animation: iconPop 0.4s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes iconPop {
+  from { transform: scale(0.3) rotate(-20deg); opacity: 0; }
+  to   { transform: scale(1)   rotate(0deg);   opacity: 1; }
+}
+.result-flash.flash-success .result-flash-icon { color: #4ade80; }
+.result-flash.flash-error   .result-flash-icon { color: #f87171; }
+
+.result-flash-msg {
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  text-align: center;
+}
+.result-flash.flash-success .result-flash-msg { color: #bbf7d0; }
+.result-flash.flash-error   .result-flash-msg { color: #fecaca; }
+
+.result-flash-sub {
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  opacity: 0.75;
+}
+.result-flash.flash-success .result-flash-sub { color: #86efac; }
+.result-flash.flash-error   .result-flash-sub { color: #fca5a5; }
+
+/* Tema Killua — colores morados para el flash de éxito */
+body[data-theme="killua"] .result-flash.flash-success .result-flash-content {
+  background: rgba(12, 10, 26, 0.82);
+  border-color: rgba(167,139,250,0.45);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.55), 0 0 40px rgba(167,139,250,0.25);
+}
+body[data-theme="killua"] .result-flash.flash-success .result-flash-icon { color: #a78bfa; }
+body[data-theme="killua"] .result-flash.flash-success .result-flash-msg  { color: #e9d5ff; }
+body[data-theme="killua"] .result-flash.flash-success .result-flash-sub  { color: #c4b5fd; }
