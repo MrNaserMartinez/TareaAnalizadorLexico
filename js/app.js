@@ -19,6 +19,7 @@ const TYPE_INFO = {
 let lastErrorTable    = [];
 let lastSyntaxErrors  = [];
 let lastParseTree     = null;
+let lastTokens        = [];
 let errorTableVisible = false;
 let treeViewMode      = 'graphical';
 
@@ -45,7 +46,7 @@ function renderTokens(tokens) {
     const info = TYPE_INFO[tok.type] || { label: tok.type, css: 'err' };
 
     let displayValue;
-    if (tok.type === 'Especial') {
+    if (tok.type === 'Especial' && tok.value === 'DraSheyla') {
       displayValue = '✨ Ingeniera ejemplar, guía y catedrática dedicada — ¡gracias por enseñarnos Compiladores!';
     } else {
       displayValue = escapeHtml(tok.value);
@@ -622,6 +623,7 @@ function analyze() {
 
   const { tokens, symbolTable, errorTable } = analyzeLexer(code);
   lastErrorTable = errorTable;
+  lastTokens     = tokens;
 
   renderTokens(tokens);
   renderStats(tokens);
@@ -1005,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let _flashTimer = null;
 
-function showResultFlash(success, lexErrors, synErrors) {
+function showResultFlash(success, lexErrors, synErrors, especial) {
   const el  = document.getElementById('resultFlash');
   const ico = document.getElementById('resultFlashIcon');
   const msg = document.getElementById('resultFlashMsg');
@@ -1017,7 +1019,12 @@ function showResultFlash(success, lexErrors, synErrors) {
 
   const theme = document.body.getAttribute('data-theme') || 'gon';
 
-  if (success) {
+  if (especial) {
+    ico.textContent = '✨';
+    msg.textContent = '¡Token Especial detectado!';
+    sub.textContent = 'Ingeniera ejemplar, guía y catedrática dedicada — ¡gracias por enseñarnos Compiladores!';
+    el.className = 'result-flash flash-especial';
+  } else if (success) {
     ico.textContent = '✦';
     msg.textContent = theme === 'killua' ? '¡Descarga eléctrica exitosa!' : '¡Aura purificada!';
     sub.textContent = 'Sin errores léxicos ni sintácticos';
@@ -1050,7 +1057,8 @@ function showResultFlash(success, lexErrors, synErrors) {
 const _originalAnalyze = analyze;
 window.analyze = function analyze() {
   _originalAnalyze();
-  const lexErr = lastErrorTable   ? lastErrorTable.length   : 0;
-  const synErr = lastSyntaxErrors ? lastSyntaxErrors.length : 0;
-  showResultFlash(lexErr === 0 && synErr === 0, lexErr, synErr);
+  const lexErr   = lastErrorTable   ? lastErrorTable.length   : 0;
+  const synErr   = lastSyntaxErrors ? lastSyntaxErrors.length : 0;
+  const especial = lastTokens && lastTokens.some(t => t.type === 'Especial');
+  showResultFlash(lexErr === 0 && synErr === 0, lexErr, synErr, especial);
 };

@@ -1058,3 +1058,26 @@ body[data-theme="killua"] .result-flash.flash-success .result-flash-content {
 body[data-theme="killua"] .result-flash.flash-success .result-flash-icon { color: #a78bfa; }
 body[data-theme="killua"] .result-flash.flash-success .result-flash-msg  { color: #e9d5ff; }
 body[data-theme="killua"] .result-flash.flash-success .result-flash-sub  { color: #c4b5fd; }
+
+/* ════════════════════════════════════════════════════════════
+   FLASH ESPECIAL (DraSheyla easter egg) — dorado brillante
+   ════════════════════════════════════════════════════════════ */
+.result-flash.flash-especial .result-flash-bg {
+  background: radial-gradient(ellipse at center,
+    rgba(251,191,36,0.28) 0%, rgba(245,158,11,0.10) 55%, transparent 75%);
+}
+.result-flash.flash-especial .result-flash-content {
+  background: rgba(20, 14, 4, 0.88);
+  border-color: rgba(251,191,36,0.60);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.55), 0 0 50px rgba(251,191,36,0.35);
+}
+.result-flash.flash-especial .result-flash-icon {
+  color: #fbbf24;
+  animation: iconPop 0.4s cubic-bezier(.34,1.56,.64,1) both, iconGlow 1.4s ease-in-out infinite alternate;
+}
+@keyframes iconGlow {
+  from { filter: drop-shadow(0 0 8px #fbbf24);  }
+  to   { filter: drop-shadow(0 0 22px #f59e0b); }
+}
+.result-flash.flash-especial .result-flash-msg { color: #fde68a; }
+.result-flash.flash-especial .result-flash-sub { color: #fcd34d; opacity: 0.90; }

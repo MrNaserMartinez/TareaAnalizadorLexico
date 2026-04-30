@@ -1,4 +1,5 @@
-// lexer.js 
+// lexer.js — Analizador Léxico de NenScript (Hunter x Hunter)
+
 const PALABRAS_RESERVADAS = new Set([
   'nen', 'ko',
   'gon', 'killua', 'kurapika', 'leorio',
@@ -73,6 +74,7 @@ function inferirTipo(tokens, idx) {
   const next2 = tokens[idx + 2];
 
   // Declaración con yorknew (const) — el tipo viene 2 tokens atrás: yorknew gon PI
+  // Se verifica PRIMERO para que tenga prioridad sobre el chequeo simple
   if (prev2 && prev2.type === 'Palabra_Reservada' && prev2.value === 'yorknew'
       && prev && prev.type === 'Palabra_Reservada') {
     if (prev.value === 'gon')      return 'yorknew gon (const entero)';
@@ -82,6 +84,7 @@ function inferirTipo(tokens, idx) {
   }
 
   // Declaración explícita: gon x, killua y, kurapika z, leorio w
+  // (case-sensitive: solo coincide la forma exacta en minúsculas)
   if (prev && prev.type === 'Palabra_Reservada') {
     if (prev.value === 'gon')      return 'gon (entero)';
     if (prev.value === 'killua')   return 'killua (decimal)';
@@ -99,6 +102,7 @@ function inferirTipo(tokens, idx) {
   return 'desconocido';
 }
 
+// Captura el valor literal cuando hay  identificador := <literal>
 function inferirValor(tokens, idx) {
   const next  = tokens[idx + 1];
   const next2 = tokens[idx + 2];
@@ -121,6 +125,7 @@ function analyzeLexer(source) {
   let lineNum = 1;
   let colNum  = 1;
 
+  // Helper: avanza una posición y mantiene línea/columna sincronizadas
   function advance() {
     if (source[i] === '\n') { lineNum++; colNum = 1; }
     else                    { colNum++; }
@@ -181,11 +186,13 @@ function analyzeLexer(source) {
       let word = '';
       while (i < source.length && isAlnum(source[i])) { word += source[i]; advance(); }
 
+      // Easter egg: DraSheyla
       if (word === 'DraSheyla') {
         tokens.push({ type: 'Especial', value: word, line: tokLine, column: tokCol });
         continue;
       }
 
+      // CASE-SENSITIVE: solo coincide si está exactamente en minúsculas
       if (PALABRAS_RESERVADAS.has(word)) {
         if (word === 'verdad' || word === 'falso') {
           tokens.push({ type: 'Booleano', value: word, line: tokLine, column: tokCol });
@@ -194,6 +201,9 @@ function analyzeLexer(source) {
         }
         continue;
       }
+
+      // Detección de palabra reservada mal escrita (mayúsculas / mixto)
+      // Si al pasarla a minúsculas SÍ coincide con una reservada, es error léxico
       if (PALABRAS_RESERVADAS.has(word.toLowerCase())) {
         tokens.push({ type: 'Error', value: word, line: tokLine, column: tokCol, errorKey: 'RESERVADA_MAL' });
         continue;
@@ -208,11 +218,12 @@ function analyzeLexer(source) {
       continue;
     }
 
+    // Números: enteros y decimales
     if (isDigit(ch)) {
       let num = '';
       while (i < source.length && isDigit(source[i])) { num += source[i]; advance(); }
 
-
+      // Decimal
       if (source[i] === '.' && isDigit(source[i+1])) {
         num += source[i]; advance(); // consume el punto
         while (i < source.length && isDigit(source[i])) { num += source[i]; advance(); }
@@ -229,6 +240,7 @@ function analyzeLexer(source) {
       continue;
     }
 
+    // Operadores de 2 caracteres (>=, <=, ==, !=, :=, &&, ||)
     const two = source[i] + (source[i+1] || '');
     if (OPERADORES_DOBLES.has(two)) {
       if (two === ':=') {
@@ -241,18 +253,27 @@ function analyzeLexer(source) {
       advance(); advance(); continue;
     }
 
+    // Operadores aritméticos: + - * / %
     if (OPERADORES_ARITMETICOS.has(ch)) {
       tokens.push({ type: 'Operador_Aritmético', value: ch, line: tokLine, column: tokCol }); advance(); continue;
     }
+
+    // Operadores relacionales de 1 carácter: > <
     if (OPERADORES_RELACIONALES.has(ch)) {
       tokens.push({ type: 'Relacional', value: ch, line: tokLine, column: tokCol }); advance(); continue;
     }
+
+    // Operadores lógicos de 1 carácter: !
     if (OPERADORES_LOGICOS.has(ch)) {
       tokens.push({ type: 'Operador_Lógico', value: ch, line: tokLine, column: tokCol }); advance(); continue;
     }
+
+    // Delimitadores: ( ) { } [ ] , ; :
     if (DELIMITADORES.has(ch)) {
       tokens.push({ type: 'Delimitador', value: ch, line: tokLine, column: tokCol }); advance(); continue;
     }
+
+    // Carácter no reconocido (incluye '=' suelto, '@', '#', etc.)
     tokens.push({ type: 'Error', value: ch, line: tokLine, column: tokCol, errorKey: 'CHAR_INVALIDO' });
     advance();
   }
