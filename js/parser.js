@@ -1,6 +1,5 @@
 // parser.js
 function analyzeParser(tokens) {
-  // Filtrar tokens que el parser no debe ver: Error y Especial (easter egg)
   const stream = tokens.filter(t => t.type !== 'Error' && t.type !== 'Especial');
   const errors = [];
   let pos = 0;
@@ -58,7 +57,6 @@ function analyzeParser(tokens) {
     }
   }
 
-  // Constructores de nodos
   const node = (label, children = [], extra = {}) => ({ label, children, ...extra });
   const leaf = (label, tok) => ({
     label,
@@ -91,12 +89,10 @@ function analyzeParser(tokens) {
     return root;
   }
 
-  // lista_inst ::= { instruccion }
   function parseListaInst(stopAt = []) {
     const lista = node('lista_inst');
     while (!isEnd()) {
       const tok = peek();
-      // Stop conditions (terminadores de bloque)
       if (tok.type === 'Palabra_Reservada' &&
           (tok.value === 'ko' || tok.value === 'illumi' || tok.value === 'hisoka')) break;
 
@@ -106,7 +102,6 @@ function analyzeParser(tokens) {
     return lista;
   }
 
-  // instruccion ::= ...
   function parseInstruccion() {
     const tok = peek();
     if (!tok) return null;
@@ -148,7 +143,6 @@ function analyzeParser(tokens) {
       }
 
       if (tok.type === 'Identificador') {
-        // Puede ser asignación (IDENT :=) o llamada a función (IDENT ()
         const next = peek(1);
         if (next && next.type === 'Asignación')          return parseAsignacionInst();
         if (next && next.type === 'Delimitador' && next.value === '(') return parseLlamadaInst();
@@ -163,7 +157,6 @@ function analyzeParser(tokens) {
       return null;
 
     } catch (e) {
-      // No debería ocurrir; modo pánico
       syncToStatementBoundary();
       return null;
     }
@@ -211,7 +204,6 @@ function analyzeParser(tokens) {
     return decl;
   }
 
-  // asignacion ::= IDENT ":=" expresion + ";"
   function parseAsignacionInst() {
     const asig = node('asignacion');
     const id = advance();
@@ -223,8 +215,6 @@ function analyzeParser(tokens) {
     expect('Delimitador', ';', "Falta ';' al final de la asignación");
     return asig;
   }
-
-  // llamada como instrucción: IDENT "(" [args] ")" ";"
   function parseLlamadaInst() {
     const inst = node('llamada_inst');
     inst.children.push(parseLlamadaFuncion());
@@ -232,7 +222,6 @@ function analyzeParser(tokens) {
     return inst;
   }
 
-  // llamada_funcion ::= IDENT "(" [lista_args] ")"
   function parseLlamadaFuncion() {
     const lf = node('llamada_funcion');
     const id = advance();
@@ -347,8 +336,6 @@ function analyzeParser(tokens) {
     const cf = node('ciclo_for');
     const kw = advance();
     cf.children.push(leaf("'ken'", kw));
-
-    // declaración inicial (sin punto y coma final, lo consumimos manualmente)
     if (peek() && peek().type === 'Palabra_Reservada' &&
         ['gon','killua','kurapika','leorio'].includes(peek().value)) {
       const decl = node('decl_init');
@@ -369,7 +356,6 @@ function analyzeParser(tokens) {
     const condExpr = parseExpresion(); if (condExpr) cf.children.push(condExpr);
     expect('Delimitador', ';', "Falta ';' después de la condición en ken");
 
-    // paso: asignación sin ;
     if (peek() && peek().type === 'Identificador') {
       const asig = node('paso');
       const id = advance();
@@ -387,8 +373,6 @@ function analyzeParser(tokens) {
     if (ko) cf.children.push(leaf("'ko'", ko));
     return cf;
   }
-
-  // hatsu IDENT (params) : lista_inst ko
   function parseDeclaracionFuncion() {
     const fn = node('declaracion_funcion');
     const kw = advance();
@@ -515,7 +499,6 @@ function analyzeParser(tokens) {
     return null;
   }
 
-  // ── Punto de entrada ───────────────────────────────────────────────────
   let parseTree = null;
   if (stream.length === 0) {
     error("El archivo no contiene tokens analizables", null);

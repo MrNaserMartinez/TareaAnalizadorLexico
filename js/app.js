@@ -555,10 +555,18 @@ function setupTreeAvailability(tree, hasErrors) {
   panel.style.display = 'block';
   body.style.display  = 'none';
   btn.innerHTML       = '▾ Ver Árbol de Derivación';
-  btn.disabled        = false;
 
-  status.textContent = hasErrors ? 'Árbol parcial (con errores sintácticos)' : 'Árbol válido';
-  status.className   = 'count-label ' + (hasErrors ? 'count-warn' : 'count-ok');
+  if (hasErrors) {
+    status.textContent = '❌ Error detectado — no se puede generar el árbol';
+    status.className   = 'count-label count-warn';
+    btn.style.display  = 'none';
+    btn.disabled       = true;
+  } else {
+    status.textContent = 'Árbol válido';
+    status.className   = 'count-label count-ok';
+    btn.style.display  = '';
+    btn.disabled       = false;
+  }
 }
 
 // ── Botones / control general ─────────────────────────────────────────
@@ -1062,3 +1070,26 @@ window.analyze = function analyze() {
   const especial = lastTokens && lastTokens.some(t => t.type === 'Especial');
   showResultFlash(lexErr === 0 && synErr === 0, lexErr, synErr, especial);
 };
+
+// ── Números de línea ──────────────────────────────────────────────────────
+(function setupLineNumbers() {
+  const ta  = document.getElementById('sourceCode');
+  const ln  = document.getElementById('lineNumbers');
+  if (!ta || !ln) return;
+
+  function updateLineNumbers() {
+    const lines = ta.value.split('\n').length;
+    let nums = '';
+    for (let i = 1; i <= lines; i++) nums += i + '\n';
+    ln.textContent = nums;
+    // Sincronizar scroll vertical
+    ln.scrollTop = ta.scrollTop;
+  }
+
+  ta.addEventListener('input',  updateLineNumbers);
+  ta.addEventListener('scroll', () => { ln.scrollTop = ta.scrollTop; });
+  ta.addEventListener('keydown', () => setTimeout(updateLineNumbers, 0));
+
+  // Inicializar con el placeholder (0 líneas escritas = mostrar al menos "1")
+  updateLineNumbers();
+})();
